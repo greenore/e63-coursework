@@ -1,0 +1,20 @@
+{
+    "statements": [
+        {
+            "statement": "MATCH (n { name: 'Chad Stahelski' }) DETACH DELETE n"
+            
+        },
+        {
+            "statement": "MATCH (n { name: 'David Leitch' }) DETACH DELETE n"
+        },
+        {
+            "statement": "MATCH (n { name: 'William Dafoe' }) DETACH DELETE n"
+        },
+        {
+            "statement": "MATCH (n { name: 'Michael Nyquist' }) DETACH DELETE n"
+        },
+        {
+            "statement": "MATCH (n { title: 'John Wick' }) DETACH DELETE n"
+        }
+]
+}

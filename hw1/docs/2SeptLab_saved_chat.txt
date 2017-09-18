@@ -1,0 +1,215 @@
+11:59:59	 From  Diane Howard : Hi can anyone hear me?
+12:00:08	 From  stirling waite : Yes, I hear you.
+12:00:10	 From  Jason Zhou Deng : yes
+12:02:02	 From  Srini  to  Diane Howard(Privately) : Hello Zoom is dangerous
+12:02:22	 From  Srini  to  Diane Howard(Privately) : it has video share on by default
+12:02:26	 From  stirling waite : Hello?
+12:02:28	 From  Lena Bolila : Hi
+12:02:37	 From  Diane Howard  to  Srini(Privately) : th u
+12:02:43	 From  Diane Howard : hello everyone!  
+12:02:49	 From  Subadhra : yes
+12:02:50	 From  Rinku Khazanchi : Yes
+12:02:51	 From  Subadhra : yes
+12:02:53	 From  Seshu Eruparswapu : yes
+12:03:03	 From  Ayub : yes
+12:07:24	 From  Rinku Khazanchi : lost voice
+12:07:25	 From  jrout : no voice now
+12:07:31	 From  Donna Strok : lost sound
+12:07:31	 From  Max Shirvanifar : yes
+12:07:33	 From  Ilana : neither here
+12:07:36	 From  Rinku Khazanchi : no audio diane
+12:07:36	 From  Ramakrishna Mamidipudi : did we lose u
+12:07:42	 From  Whitney : where can I find the slides for this?
+12:07:51	 From  Ayub : no audio here
+12:07:52	 From  Carlos Marino : voice back
+12:08:00	 From  Rinku Khazanchi : no not yet
+12:08:02	 From  Carlos Marino : no gone again
+12:08:12	 From  Donna Strok : yes
+12:08:13	 From  Rinku Khazanchi : yes
+12:08:14	 From  Ilana : yes
+12:08:14	 From  Jason Zhou Deng : yes now
+12:08:15	 From  Ramakrishna Mamidipudi : feeble
+12:08:15	 From  Irina Filitovich : I can now
+12:08:17	 From  Bharat : We can hear you now
+12:08:17	 From  jrout : yes
+12:08:24	 From  Ayub : yes now
+12:08:30	 From  Maria : how do you turn on audio?
+12:08:38	 From  Max Shirvanifar : are these sessions are recorded?
+12:09:56	 From  stirling waite : @max from Piazza “Yes. I will record it and post it in the Video section in the Week 1 folder."
+12:10:03	 From  Lena Bolila : yes, all sessions are recorded and posted later.
+12:12:03	 From  Ramakrishna Mamidipudi : do you have an example of an homework.. we can use as template
+12:12:23	 From  stirling waite : Oh no I was just quoting you from before
+12:12:59	 From  Subadhra : can we get this deck ? is it uploaded already ? 
+12:13:33	 From  Lena Bolila : Diane will upload the deck soon.
+12:16:03	 From  Lena Bolila : Example of the homework is on the course's website. Go to Home/Week 1/click on the link on the left under "Examples on how to document homework."
+12:16:59	 From  Carlos Marino : what about os, something can be missed ?
+12:18:15	 From  Lena Bolila : what about OS?
+12:18:26	 From  Elena Li : do you all see a ‘hello ~’ on the screen?
+12:18:37	 From  Ilana : yeah
+12:18:47	 From  Deepa Maret : i do see "hello'
+12:18:56	 From  Ayub : yes
+12:19:11	 From  Desiree Koh : If we do have questions for TAs, where should we ask?
+12:20:11	 From  Desiree Koh : thanks
+12:21:26	 From  Emma Muhleman : Perfect
+12:21:51	 From  Irina Filitovich : It made it better!
+12:21:58	 From  Carlos Marino : it is better
+12:22:03	 From  Deepa Maret : it is better.
+12:22:04	 From  susie : better
+12:24:16	 From  jrout : please ping this link here
+12:24:19	 From  Emma Muhleman : are these slides available on the website yet?
+12:24:32	 From  Emma Muhleman : ok great thank you
+12:24:40	 From  Lena Bolila : If you'd like to ask a question about assignment 1, go to Piazza/ folder for homework 1, which is the prefered way since we all as community can help each other out, as Diane's just pointed out.
+12:26:06	 From  April Lim : could you put the slide on full screen please? it is hard to read the text
+12:26:23	 From  April Lim : thanks
+12:27:43	 From  Lena Bolila : Enter full mode: hover the cursor somewhere on top of the zoom page/View Options/Full Screen
+12:28:40	 From  Lena Bolila : it is also a toggle button, so what i do is periodically exit full mode to see the comment section.
+12:29:11	 From  Lena Bolila : OR Even better:
+12:29:29	 From  Lena Bolila : Do chat as a pop-up.
+12:30:58	 From  Subadhra : for another course we recieved $100 free credit
+12:31:05	 From  jrout : First why do we need a AWS account ?
+12:31:09	 From  Subadhra : by using Harvard.edu email id
+12:31:21	 From  Lena Bolila : we will need to work with VIrtual machines
+12:31:34	 From  jrout : can we use local machine ?
+12:31:39	 From  Lena Bolila : specially for Spark, Hadoop -- AWS will be needed.
+12:31:41	 From  jrout : can’t*
+12:31:56	 From  jrout : we can do the same using local machine also ?
+12:32:08	 From  Srini : for saving chat click More (dropdown)-->save chat. The chat is saved in your local folder. The group chat in Zoom does have valuable information
+12:32:16	 From  Lena Bolila : not really.
+12:32:43	 From  jrout : what would stop not to do all the task locally ?
+12:33:03	 From  jrout : I have a MAC
+12:37:37	 From  Lena Bolila : simplicity and for distributed computing. AWS have lots of services some of which we will use. Having virtual machine (s) in the cloud, lets one use local scripts to communicate with aws machines, then install, unstall programs easily. We will spin aws micro instances, install hadoop clusters.
+12:38:51	 From  Emma Muhleman : It also says that to sign in we need an Account ID provided by our administrator
+12:38:56	 From  Lena Bolila : if something goes sour, instead of re-tracing steps/uninstalling/wiping out your own machine, you can simply delete aws instance and easily install another one (ones).
+12:40:07	 From  andrewcaide : I can’t wait to rewatch a video of copy paste :\
+12:43:29	 From  Lena Bolila : is that sarcasm, Andrew Caide? The goal of this lab is to help you jump into the class, to set up an account with AWS and to get started with R.
+12:44:47	 From  Elena Li : Extension school student can use lynda.com for free.  And I believe lynda.com has videos on how to install
+12:45:38	 From  andrewcaide : No, it was sincere. I’m lamenting about it not being put together terribly well; it’s an expensive class - I was hoping the quality would be good
+12:46:03	 From  Emma Muhleman : So this is on Lynda?'
+12:46:15	 From  Emma Muhleman : or the equivalent in an easy to do format?
+12:46:17	 From  Lena Bolila : Basically, everything is out there, somewhere online nowadays. I take classes and people I respect take classes at an old age too to keep them disciplined and to get exposure to different topics and to do somhands-on project.
+12:49:06	 From  Lena Bolila : Andrew Clair, well, $2700 is not expensive. Oracle class i want to take is $4700 or smth like that. 
+12:49:43	 From  Lena Bolila : ---and slides make sense.
+12:51:05	 From  andrewcaide : Asserting 2700 is not expensive is a rather problematic claim, but let’s not do the politics thing. The slides are nice.
+12:53:04	 From  Lena Bolila : i do not want to jump into a dispute over price with you, but I take classes to keep me disciplined in learning, and the price makes sense considering you are pursuing Harvard extension's data certificate or just investing into yourself.
+12:53:10	 From  Srini  to  Diane Howard(Privately) : Madam Howard - when the zoom recordings contain everything including the speakers column where all students who have logged in also show up in a column?
+12:53:17	 From  Carlos Marino : please where are the slides?
+12:53:50	 From  andrewcaide : That’s fine, but remember this is a ‘Harvard’ class. It doesn’t feel like it given this presentation.
+12:53:58	 From  andrewcaide : But no bickering. Back to class
+12:54:14	 From  Elena Li : do you mind speaking louder? thanks
+12:54:19	 From  Lena Bolila : slides will be posted later today, before Monday the latest.
+12:54:30	 From  Carlos Marino : thanks
+12:56:07	 From  andrewcaide : that’s the professor lol
+12:56:14	 From  Emma Muhleman : Figured
+12:57:01	 From  K. Reginald Wade : FYI - she can see the chats
+12:57:15	 From  Lena Bolila : Andrew, i took programming and data related classes at the Extension, and in my opinion, this one is the best. TAs and professors in other classes do way less stuff than we do here.
+12:57:38	 From  sanjeb : Agree
+12:57:51	 From  Subadhra : Totally agree Lena
+12:57:54	 From  ved : why is there hello written in the screen
+12:58:17	 From  jrout : i lost the part : should we use Virginia Region in the aws ?
+12:58:29	 From  sanjeb : No use the region closest to you
+12:58:33	 From  stirling waite : ^^
+12:58:40	 From  andrewcaide : This is my first class at HE. Don’t get me wrong - I’m excited to learn.
+12:58:46	 From  Elena Li : what are we trying to do now?
+12:58:54	 From  Elena Li : what is the base of choosing what?
+12:58:54	 From  andrewcaide : Also you’re re-taking this class?
+12:59:07	 From  stirling waite : Setting up an Amazon Instance.
+12:59:12	 From  Lena Bolila : Ved, Zoom is the new screenshare tool we use, this is first time actually for us TAs. We will figure it out promptly.
+12:59:42	 From  Elena Li : why Linux?
+13:00:03	 From  andrewcaide : Coders love Linux. Less restrictions on everything; also free
+13:00:12	 From  stirling waite : Almost every web server out there is Linux.
+13:00:12	 From  Elena Li : thanks
+13:00:17	 From  Elena Li : I see
+13:00:17	 From  ved : ok
+13:00:21	 From  noah peart : better command line tools
+13:00:32	 From  andrewcaide : Having a command line :P
+13:00:38	 From  Elena Li : i can’t hear you
+13:01:00	 From  Max Shirvanifar : anyone would be interested to collabrate on HW problems? please join the slack site that one of the students did set up or contact me and I will set something up
+13:01:17	 From  noah peart : is there one setup ?
+13:01:18	 From  Lena Bolila : that's right, when setting up aws instance, chose aws 'region' that is geographically closest to you. Since Diane is in New England, Virginia is the closest... 
+13:01:39	 From  andrewcaide : R is a struggle at first - I would encourage you spending a good amount of time struggling with it first
+13:02:11	 From  Ramakrishna Mamidipudi : when will we be start using AWS.. from next class onwards?
+13:02:12	 From  Carlos Marino : anybody knows what is the level required in python?
+13:02:23	 From  stirling waite : Link to Slack channel?
+13:02:25	 From  andrewcaide : Level?
+13:02:31	 From  Elena Li : at Max, I will
+13:02:44	 From  Carlos Marino : intermediate advance ..?
+13:03:21	 From  Carlos Marino : R is easy, but want to make sure about python
+13:03:54	 From  stirling waite : From course information:
+13:03:56	 From  stirling waite : Prerequisites
+Familiarity with intermediate Python, Java, Scala, or R. Most assignments could easily be done in one of those four languages, though we consider Python and Java the most convenient. We assume no familiarity with Linux and introduce all essential Linux commands.
+13:03:58	 From  Elena Li : Professor said yesterday that if we read the codes in lectures, we should be able to do it
+13:04:16	 From  Carlos Marino : thanks
+13:04:18	 From  April Lim : Hi, sorry but Diane could you speak louder?  can barely hear on max volume
+13:04:35	 From  Lena Bolila : +Max Shirvanifar: collaboration among the students is OK, but we will detect plagirism and act accordingly. So please help each other, but do not copy each other's work.
+13:05:12	 From  Carlos Marino : i kind of lost in this aws setup
+13:05:48	 From  Elena Li : i am totally lost and I guess I will try to figure out after.  if anyone wants to work at 53 Church street Sunday or Monday, I will be there.
+13:06:09	 From  Shaun : Yes, would be helpful to have the slides to review and follow along in advance of the section.
+13:06:10	 From  andrewcaide : What time Sunday?
+13:06:45	 From  Carlos Marino : for this setup slides in advance would have been valuable
+13:06:51	 From  Elena Li : I will try to be there most of the day starting from noon to evening.
+13:06:55	 From  Emma Muhleman : VERY VALUABLE
+13:06:56	 From  susie : When do you recommend that we need to set up the AWS by?
+13:07:13	 From  Emma Muhleman : some screenshots are provided on the document called "How to do your HW 5 examples" on the course site
+13:07:16	 From  Emma Muhleman : but not all of this
+13:07:54	 From  Desiree Koh : can you set up the instance (so that it is ready) and then not run it? 
+13:08:18	 From  Robert Terry : You can suspend instances
+13:08:23	 From  andrewcaide : I can be there at 2~3
+13:08:29	 From  Desiree Koh : thanks, first time working with AWS here
+13:08:49	 From  Lena Bolila : +Carlos Marino: medium, no fancy object-oriented python is needed. One can pick Python up as we go from scratch... But the class is not vanilla. One has to study... Students asking questions in Piazza will be  helpful in solving assingments, also Stackoveflow has many answers regarding coding.
+13:09:21	 From  Robert Terry : it’s overwhelming at first but not hard after you’ve played with it a bit
+13:09:57	 From  Ramakrishna Mamidipudi : +Lena.. when do we need AWS setup/instances done by.. will we be using this for next fridays class
+13:10:38	 From  Lena Bolila : +Carlos Marino: don`t worry. Just read the slides later and follow Diane's steps, ask questions, google
+13:11:43	 From  Donna Strok : I always use Putty - Is Cygwin better than Putty?
+13:12:06	 From  Donna Strok : Cool thanks :)
+13:12:09	 From  stirling waite : If you have OS X you can use terminal for all of this.
+13:12:31	 From  Lena Bolila : +Desiree Koh: yes, you can just stop it. Very easy
+13:12:41	 From  Desiree Koh : thanks
+13:14:36	 From  Lena Bolila : +Ramakrishna: Not sure. Have to ask Zoran. Next lecture is about Neo4j graph DB, and that most likely won`t need us to use AWS. 
+13:17:18	 From  Ramakrishna Mamidipudi : Thanks
+13:18:53	 From  JR : does creating an EC2 instance cost money ?
+13:19:04	 From  JR : or its free for 1 yr for micro instance
+13:20:04	 From  JR : is it recommented
+13:20:26	 From  JR : is it recommended to use bitnami for this course ? or we can use Ec2 also ?
+13:21:19	 From  Lena Bolila : +Ramakrishna:  one thing for sure, for week 5, we will definetely be using virtual machine (s) and AWS's tools such as Kinesis, Kafka or similar for real-time stream processing in the cloud. 
+13:22:14	 From  Emma Muhleman : I just did it free with EC2
+13:23:01	 From  Robert Terry : +JR  - it depends. At the free tier level I believe you get a month’s worth of micro instance hours each billing period.
+13:23:40	 From  Robert Terry : +JR - but if you want more power, RAM, GPU, etc then it costs
+13:23:41	 From  stirling waite : Make sure to close an instance if you are not using it.
+13:24:07	 From  JR : thx Robert
+13:24:50	 From  andrewcaide : Thank you fellow student
+13:24:51	 From  susie : So, I'm just concerned about using AWS-- in the sense that it's quite new to me, so I want to make sure I spend some time familiarizing myself with it... However, it sounds like, the longer I have this account, I will eventually get charged? Please correct me, if I'm wrong
+13:24:52	 From  andrewcaide : Jfc
+13:25:38	 From  noah peart : it says you have a year free for the free-tier boxes
+13:25:46	 From  Emma Muhleman : sorry but what does JFC stand for?
+13:25:56	 From  david : thank you for the lab!
+13:26:05	 From  susie : Got it, thanks Noah
+13:26:10	 From  Carlos Marino : please the slides as soon as possible, thanks
+13:26:11	 From  Robert Terry : +susie - I think the free tier last for a year. If you stick to free tier level services it’s free.
+13:26:50	 From  susie : +Robert--Yes, glad to hear that!
+13:27:10	 From  Shaun : Is it worth paying for higher tiered services for later in the course? 
+13:27:11	 From  JR : Rober how and where do we know if we are using a free service ?
+13:27:14	 From  Srini  to  Diane Howard(Privately) : Madam Howard - when the zoom recordings contain everything including the speakers column where all students who have logged in also show up in a column?
+13:27:16	 From  stirling waite : All big data in the industry you will be using users.
+13:27:19	 From  Austen : thanks!
+13:27:20	 From  noah peart : thanks!
+13:27:27	 From  mahyar : Thank you
+13:27:28	 From  Ayub : thank you
+13:27:28	 From  Robert Terry : +susie - for what it’s worth, i’ve been playing with it over the summer and my largest bill was ~$4.00
+13:27:30	 From  Srini  to  Diane Howard(Privately) : thank you
+13:27:30	 From  Jason Zhou Deng : thanks!
+13:27:30	 From  stirling waite : *remote
+13:27:30	 From  Shaun : Tha ks 
+13:27:31	 From  dlonergan : thank you
+13:27:33	 From  stirling waite : Thanks
+13:27:33	 From  Yankai : thank you!
+13:27:35	 From  April Lim : Thanks! Please post the slides and recording! 
+13:27:36	 From  susie : Thanks, Diane
+13:27:41	 From  RK : thx
+13:27:44	 From  Robert Terry : Just ensure that you stop services after using and set billing alarms
+13:27:46	 From  Steve Joachim : thanks!
+13:27:54	 From  Elena Li : thanks
+13:28:19	 From  Srini : everyday is a new chat
+13:28:41	 From  Robert Terry : +JR - EC2 free tier is the micro instance. I think it’s marked as such
+13:28:44	 From  Elena Li : yes please
+13:30:04	 From  Lena Bolila : https://support.zoom.us/hc/en-us/articles/203650445-In-Meeting-Chat
+13:30:08	 From  Lena Bolila : How to save chat

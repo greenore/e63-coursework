@@ -1,0 +1,70 @@
+---
+title: |
+  | Homework 3: Spark, RDDs, DF
+author: "Tim Hagmann"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  html_document:
+    css: css/styles.css
+    highlight: tango
+    theme: flatly
+    toc: yes
+    toc_float: yes
+  pdf_document:
+    toc: yes
+  word_document:
+    toc: yes
+linkcolor: blue
+subtitle: |
+  | E-63 Big Data Analytics
+  | Harvard University, Autumn 2017
+affiliation: Harvard University
+urlcolor: blue
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo=TRUE)
+```
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(warning=FALSE, message=FALSE,
+                      tidy.opts=list(width.cutoff=60), fig.pos='H',
+                      fig.align='center')
+```
+
+# Introduction
+The following assignement is concerned with the installation and application of Apache Spark. Spark is an open-source cluster-computing framework which provides programmers with an application programming interface centered on a data structure called the resilient distributed dataset (RDD), a read-only multiset of data items distributed over a cluster of machines, that is maintained in a fault-tolerant way. It was developed in response to limitations in the MapReduce cluster computing paradigm, which forces a particular linear dataflow structure on distributed programs: MapReduce programs read input data from disk, map a function across the data, reduce the results of the map, and store reduction results on disk. Spark provides an interface for programming entire clusters with implicit data parallelism and fault-tolerance.
+
+Spark is implemented in Scala (a Java dialect) and accessible from software written in other languages such as Python or R. 
+
+# Problem 1 (20%)
+Create your own Virtual Machine with a Linux operating system. The lecture notes speak about CentOS. You are welcome to work with another Linux OS. When creating the VM, create an administrative user. Call that user whatever you feel like.
+
+As stated on Piazza, instead of using a VM it is also possible to create a AWS instance. This is the approach chosen here.
+
+## Create AWS instance
+```{bash}
+ls
+```
+
+
+## SCP file transfer
+Once the VM is created transfer the attached text file Ulysses10.txt to the home of new user. You can do it using scp (secure copy command) or email.
+
+## Java, Python and Scala version
+Examine the version of Java, Python and Scala on your VM. If any of those versions is below requirements for Spark 2.2 install proper version. Set JAVA_HOME environmental variable. Set your PATH environmental variable properly, so that you can invoke: java, sbt and python commands from any directory on your system.
+
+# Problem 2 (15%)
+Install Spark 2.2 on your VM. Make sure that pyspark is also installed. Demonstrate that you can successfully open spark-shell and that you can eliminate most of WARNing messages.
+
+# Problem 3 (15%)
+Find the number of lines in the text file ulysses10.txt that contain word “afternoon” or “night”  or “morning”. In this problem use RDD API.  Do this in two ways, first create a lambda function which will test whether a line contains any one of those 3 words. Second, create a named function in the language of choice that returns TRUE if a line passed to it contains any one of those three words. Demonstrate that the count is the same. Use pyspark and Spark Python API. If convenient you are welcome to implement this problem in any other language: Scala, Java or R.
+
+# Problem 4 (15%)
+Implement the above task, finding the number of lines with one of those three words in file ulysses10.txt using Dataset/DataFrame API. Again, use the language of your choice.
+
+# Problem 5 (15%)
+Create a standalone Python script that will count all words in file ulysses10.txt. You are expected to produce a single number. Do it using RDD API. If convenient, you are welcome to implement this problem in other languages: Scala, Java or R.
+
+# Problem 6 (15%)
+Create a standalone Python script that will count all words in file ulysses10.txt. You are expected to produce a single number. Do it using Dataset/DataFrame API. If convenient, you are welcome to implement this problem in other languages: Scala, Java or R.

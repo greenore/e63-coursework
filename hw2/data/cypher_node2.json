@@ -1,0 +1,10 @@
+{
+    "statements": [
+        {
+            "statement": "CREATE (johnwick:Movie { title : 'John Wick', year : '2014-10-24' }), (chad:Director { name:'Chad Stahelski' }), (david:Director { name:'David Leitch' }), (william:Actor { name:'William Dafoe' }), (michael:Actor { name:'Michael Nyquist' }), (william)-[:ACTS_IN]->(johnwick), (michael)-[:ACTS_IN]->(johnwick), (chad)-[:DIRECTS]->(johnwick), (david)-[:DIRECTS]->(johnwick)"
+        },
+                {
+            "statement": "MATCH (n {title:'John Wick'}), (m {name:'Keanu Reeves'}) CREATE (n)-[:ACTS_IN]->(m)"
+        }
+]
+}

@@ -1,0 +1,7 @@
+{
+    "statements": [
+        {
+            "statement": "CREATE (matrix1:Movie { title : 'The Matrix', year : '1999-03-31' }), (matrix2:Movie { title : 'The Matrix Reloaded', year : '2003-05-07' }), (matrix3:Movie { title : 'The Matrix Revolutions', year : '2003-10-27' }), (keanu:Actor { name:'Keanu Reeves' }), (laurence:Actor { name:'Laurence Fishburne' }), (carrieanne:Actor { name:'Carrie-Anne Moss' }), (keanu)-[:ACTS_IN { role : 'Neo' }]->(matrix1), (keanu)-[:ACTS_IN { role : 'Neo' }]->(matrix2), (keanu)-[:ACTS_IN { role : 'Neo' }]->(matrix3), (laurence)-[:ACTS_IN { role : 'Morpheus' }]->(matrix1), (laurence)-[:ACTS_IN { role : 'Morpheus' }]->(matrix2), (laurence)-[:ACTS_IN { role : 'Morpheus' }]->(matrix3), (carrieanne)-[:ACTS_IN { role : 'Trinity' }]->(matrix1), (carrieanne)-[:ACTS_IN { role : 'Trinity' }]->(matrix2), (carrieanne)-[:ACTS_IN { role : 'Trinity' }]->(matrix3)"
+        }
+]
+}

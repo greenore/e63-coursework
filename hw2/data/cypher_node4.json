@@ -1,0 +1,7 @@
+{
+    "statements": [
+        {
+            "statement": "CREATE (paul:Human { label:'Paul' }), (fiffi:Dog  { label:'Fiffi' }), (park:Place { label:'Central Park' }), (walk:Event { label:'Walk' }), (sunafternoon:Time { label:'Sunday Afternoon' }), (newyork:Place { label:'New York' }), (paul)-[:owns]->(fiffi), (paul)-[:is_in]->(newyork), (fiffi)-[:is_in]->(newyork), (park)-[:is_in]->(newyork), (paul)-[:did]->(walk), (fiffi)-[:did]->(walk), (walk)-[:happend_on]->(sunafternoon), (walk)-[:happend_at]->(park)"
+        }
+]
+}
