@@ -129,11 +129,11 @@ aws ec2 describe-instances --query \
 aws ec2 describe-addresses
 ```
 
-With the above instance id (i-0235676c232182311) and elastic ip address (52.57.149.55) we can associate the IP address.
+With the above instance id (i-0d52c859a139da090) and elastic ip id (eipalloc-a26c62cb) we can associate the IP address.
 
 ```{bash eval=FALSE}
 # Associate IP address
-aws ec2 associate-address --instance-id i-0235676c232182311 --allocation-id 52.57.149.55
+aws ec2 associate-address --instance-id i-0d52c859a139da090 --allocation-id eipalloc-a26c62cb
 ```
 
 #### Step 7: SSH into EC2 Instance
@@ -141,25 +141,25 @@ Having associated instance ip (52.57.149.55) we can now ssh into the server.
 
 ```{bash eval=FALSE}
 # SSH into instance
-ssh -i SSH/aws-instance.pem ubuntu@<elastic_ip>
+ssh -i SSH/aws-instance.pem ubuntu@52.57.149.55
 ```
 
 #### Step 8: Add user
 We're next adding a new user and are coping the ssh key to that user.
 ```{bash eval=FALSE}
 # Add new user
-sudo adduser <username>
-sudo adduser <username> sudo
+sudo adduser tim
+sudo adduser tim sudo
 
 # Copy ssh key
-sudo mkdir /home/<username>/.ssh
-sudo cp /home/ubuntu/.ssh/authorized_keys \
-    /home/<username>/.ssh/authorized_keys
+sudo mkdir /home/tim/.ssh
 sudo cp /home/ubuntu/.ssh/authorized_keys \
     /home/tim/.ssh/authorized_keys
-sudo chown <username> -R /home/<username>/.ssh
-sudo chmod 700 /home/<username>/.ssh
-sudo chmod 600 /home/<username>/.ssh/authorized_keys
+sudo cp /home/ubuntu/.ssh/authorized_keys \
+    /home/tim/.ssh/authorized_keys
+sudo chown tim -R /home/tim/.ssh
+sudo chmod 700 /home/tim/.ssh
+sudo chmod 600 /home/tim/.ssh/authorized_keys
 ```
 
 #### Step 9: Enable Swapping (optional)
@@ -230,22 +230,76 @@ scala -version
 sbt sbtVersion
 ```
 
-The above outputs show, that the necessary software is up to date. Next we're setting the JAVA_HOME variable.
+The above outputs show, that the necessary software is up to date. Next we're setting the necessary path variables for JAVA_HOME. In order to do this we're creating a bash_profile file with the following content:
+```{bash eval=FALSE}
+# Get the aliases and functions
+if [ -f ~/.bashrc ]; then
+	. ~/.bashrc
+fi
 
-```{bash}
-~/.bashrc
+# JAVA_HOME environment
+JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre/
+export JAVA_HOME
+
+PATH=$PATH:$JAVA_HOME/bin
+export PATH
 ```
 
-
-```{bash eval=FALSE}
-# Append java path and source file
-echo 'JAVA_HOME="/usr/lib/jvm/java-8-openjdk-amd64/jre/"' | \
-  sudo tee --append /etc/environment
-source /etc/environment
+That file has to be sourced in order to be effective.
+```{bash}
+source ~/.bash_profile
 ```
 
 # Problem 2 (15%)
 Install Spark 2.2 on your VM. Make sure that pyspark is also installed. Demonstrate that you can successfully open spark-shell and that you can eliminate most of WARNing messages.
+
+## Install Spark
+There are multible ways to install spark on the EC2 instance. An easy way would be to use the spark_install function inside the sparklyr package. We're using the default installation process trough downloading the tgz file from apache.
+
+```{bash}
+# Download Spark
+sudo wget https://d3kbcqa49mib13.cloudfront.net/spark-2.2.0-bin-hadoop2.7.tgz
+
+# Unpack Spark in the /opt directory
+sudo tar zxvf spark-2.2.0-bin-hadoop2.7.tgz -C /opt
+```
+
+Next we have to add SPARK_HOME to the bash_profile file. The new file is going to look like this:
+
+```{bash eval=FALSE}
+# Get the aliases and functions
+if [ -f ~/.bashrc ]; then
+	. ~/.bashrc
+fi
+
+# JAVA_HOME environment
+JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre/
+export JAVA_HOME
+
+SPARK_HOME=/opt/spark-2.2.0-bin-hadoop2.7/
+export SPARK_HOME
+
+PATH=$PATH:$JAVA_HOME/bin:$SPARK_HOME/bin
+export PATH
+```
+
+That file has to be sourced in order to be effective.
+```{bash}
+source ~/.bash_profile
+```
+
+## Eliminate warning
+Demonstrate that you can successfully open spark-shell and that you can eliminate most of WARNing messages.
+
+In order to eliminate the error messages we're first renaming the log4j.properties file and setting the log level to ERROR.
+```{bash}
+# Rename log4j.properties
+sudo mv /opt/spark-2.2.0-bin-hadoop2.7/conf/log4j.properties.template \
+  /opt/spark-2.2.0-bin-hadoop2.7/conf/log4j.properties
+
+# Edit file
+sudo nano /opt/spark-2.2.0-bin-hadoop2.7/conf/log4j.properties
+```
 
 ## Initialize
 In the following steps we're working heavily in a R environment. In order to set up that environment, the following R code has to be executed. This loads all the necessary packages and functions for the following steps.
@@ -261,22 +315,6 @@ source("scripts/02_packages.R")               # Load all necessary packages
 source("scripts/03_functions.R")              # Load project specific functions
 ```
 
-## Install Spark
-There are multible ways to instlal spark on the EC2 instance. A easy way is to use the spark_install function inside the sparklyr.
-
-```{r}
-spark_install(version = "2.2.0")
-
-library(sparklyr)
-sc <- spark_connect(master = "local")
-
-```
-
-
-```{bash}
-chmod +x /home/tim/spark/spark-2.2.0-bin-hadoop2.7/bin/spark-shell
-/home/tim/spark/spark-2.2.0-bin-hadoop2.7/bin/spark-shell
-```
 
 
 ```{bash eval=FALSE}
@@ -294,9 +332,6 @@ sudo -H pip3 install pyspark
 
 # Download Spark
 ```{bash eval=FALSE}
-sudo wget https://d3kbcqa49mib13.cloudfront.net/spark-2.2.0-bin-hadoop2.7.tgz
-tar xvf spark-2.2.0-bin-hadoop2.7.tgz
-spark-2.2.0-bin-hadoop2.7/bin/spark-shell
 ```
 
 
