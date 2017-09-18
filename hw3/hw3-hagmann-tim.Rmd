@@ -4,14 +4,14 @@ title: |
 author: "Tim Hagmann"
 date: '`r format(Sys.Date(), "%B %d, %Y")`'
 output:
+  pdf_document:
+    toc: yes
   html_document:
     css: css/styles.css
     highlight: tango
     theme: flatly
     toc: yes
     toc_float: yes
-  pdf_document:
-    toc: yes
   word_document:
     toc: yes
 linkcolor: blue
@@ -201,7 +201,7 @@ In order to transfer the file from the local computer to the server we're openin
 ```{bash eval=FALSE}
 scp -i SSH/aws-instance.pem \
   /mnt/c/Local/Education/e63-coursework/hw3/data/ulysses10.txt \
-  <username>@52.57.149.55:~/.
+  tim@52.57.149.55:~/.
 ```
 
 ## Java, Python and Scala version
@@ -210,27 +210,39 @@ Examine the version of Java, Python and Scala on your VM. If any of those versio
 #### Spark version check
 Spark runs on Java 8+, Python 2.7+/3.4+ and R 3.1+. For the Scala API, Spark 2.2.0 uses Scala 2.11. As we're not going to use the scala API, the sbt client doesn't need to be installed.
 
+#### Get Java version
 ```{bash}
 java -version
 ```
 
+#### Get Python version
 ```{bash}
 python -V
 ```
 
+#### Get R version
 ```{bash}
 R --version
 ```
 
+#### Get Scala version
 ```{bash}
 scala -version
 ```
 
-```{bash}
+#### Get Sbt version
+```{bash eval=FALSE}
 sbt sbtVersion
 ```
 
+```{r, echo=FALSE}
+cat("[info] Loading project definition from /home/tim/project")
+cat("[info] Set current project to tim (in build file:/home/tim/")
+cat("[info] 1.0.1")
+```
+
 The above outputs show, that the necessary software is up to date. Next we're setting the necessary path variables for JAVA_HOME. In order to do this we're creating a bash_profile file with the following content:
+
 ```{bash eval=FALSE}
 # Get the aliases and functions
 if [ -f ~/.bashrc ]; then
@@ -302,7 +314,7 @@ The image above shows, that pyspark runs correctly.
 ## Eliminate warning
 Demonstrate that you can successfully open spark-shell and that you can eliminate most of WARNing messages.
 
-In order to eliminate the error messages we're first renaming the log4j.properties file and setting the log level to ERROR.
+In order to eliminate the error messages we're first renaming the log4j.properties file and setting the log level to ERROR and log4j.rootCategory=ERROR.
 
 ```{bash eval=FALSE}
 # Rename log4j.properties
@@ -324,9 +336,92 @@ knitr::include_graphics('img/terminal_spark-shell.png')
 ```
 The image above shows, that pyspark runs correctly.
 
-
 # Problem 3 (15%)
-Find the number of lines in the text file ulysses10.txt that contain word “afternoon” or “night”  or “morning”. In this problem use RDD API.  Do this in two ways, first create a lambda function which will test whether a line contains any one of those 3 words. Second, create a named function in the language of choice that returns TRUE if a line passed to it contains any one of those three words. Demonstrate that the count is the same. Use pyspark and Spark Python API. If convenient you are welcome to implement this problem in any other language: Scala, Java or R.
+Find the number of lines in the text file ulysses10.txt that contain word *“afternoon”* or *“night”* or *“morning”*. In this problem use RDD API. Do this in two ways, first create a lambda function which will test whether a line contains any one of those 3 words.
+
+
+#### Load Spark
+```{bash}
+sudo /opt/spark-2.2.0-bin-hadoop2.7/sbin/start-master.sh
+sudo /opt/spark-2.2.0-bin-hadoop2.7/sbin/stop-master.sh
+```
+
+#### Count lines (RDD)
+```{python eval=FALSE"}
+lines = sc.textFile("/home/tim/ulysses10.txt")
+lines.count()
+```
+
+#### Count lines (Dataset)
+```{python eval=FALSE"}
+lines = spark.read.text("/home/tim/ulysses10.txt")
+lines.count()
+```
+
+#### Filter words (RDD)
+```{python eval=FALSE"}
+lines = sc.textFile("/home/tim/ulysses10.txt")
+heaven = lines.filter(lambda line: "heaven" in line)
+heaven.count()
+```
+
+#### Filter words (Dataframe)
+```{python eval=FALSE"}
+dset = spark.read.text("/home/tim/ulysses10.txt")
+heavens = dset.filter(dset.value.contains('heaven'))
+heavens.count()
+```
+
+#### Lambda functions
+
+```{python eval=FALSE"}
+def hasLife(line):
+  return "life" in line # At the beginning hit a tab
+
+
+lines = sc.textFile("file:///home/tim/ulysses10.txt")
+lifeLines = lines.filter(hasLife)
+lifeLines.count()
+print lifeLines.first()
+
+```
+
+
+
+```{bash}
+$SPARK_HOME/bin/spark-submit /scripts/python/your_script.py
+```
+
+
+#### Install findspark
+```{bash}
+sudo -H pip install findspark 
+sudo -H pip install --upgrade pip
+```
+
+#### Lambda functions
+```{python eval=FALSE"}
+# Import findspark
+import findspark
+findspark.init()
+
+# Or the following command
+findspark.init("/opt/spark-2.2.0-bin-hadoop2.7")
+
+from pyspark import SparkContext, SparkConf
+
+conf = SparkConf().setMaster("local").setAppName("MyApp")
+sc = SparkContext(conf = conf)
+
+lines = sc.textFile("file:///home/tim/ulysses10.txt")
+tofday  = lines.filter(lambda line: "night" in line or "morning" in line or "afternoon" in line)
+print "Number of lines with 'night', 'morning', 'afternoon' :"
+print tofday.count()
+```
+
+```{bash}
+spark-submit /home/tim/e63-coursework/hw3/scripts/python/lambda_count.py
+```
 
 ## Initialize
 In the following steps we're working heavily in a R environment. In order to set up that environment, the following R code has to be executed. This loads all the necessary packages and functions for the following steps.
@@ -341,6 +436,56 @@ source("scripts/01_init.R")                   # Helper functions to load package
 source("scripts/02_packages.R")               # Load all necessary packages
 source("scripts/03_functions.R")              # Load project specific functions
 ```
+
+
+```{r}
+sc <- spark_connect(spark_home="/opt/spark-2.2.0-bin-hadoop2.7/",
+                    master="local")
+tbl_ulysses <- spark_read_csv(sc, name="tbl_ulysses",
+                              header=FALSE, path="data/ulysses10.txt", delimiter = )
+
+tbl_ulysses <- spark_read_source(sc, name="tbl_ulysses",
+                                 source="data/ulysses10.txt")
+
+
+
+?spark_read_source
+count_lines <- function(sc, path) {
+  spark_context(sc) %>% 
+    invoke("textFile", path, 1L) %>% 
+      invoke("count")
+}
+
+count_lines(sc, tbl_ulysses)
+
+
+```
+
+
+
+```{python}
+# Import 
+from pyspark import SparkConf, SparkContext
+
+conf = SparkConf().setMaster("local").setAppName("MyApp")
+sc = SparkContext(conf = conf)
+tim@ip-172-31-18-124:~/e$
+
+
+
+sc.textFile('file.csv')
+    .map(lambda line: (line.split(',')[0], line.split(',')[1]))
+    .collect()
+
+lines = sc.textFile("file:///home/tim/63-coursework/hw3/data/ulysses/ulysses10.txt")
+tofday  = lines.filter(lambda line: "night" in line or "morning" in line or "afternoon" in line)
+print "Number of lines with 'night', 'morning', 'afternoon' :"
+print tofday.count()
+```
+
+
+
+Second, create a named function in the language of choice that returns TRUE if a line passed to it contains any one of those three words. Demonstrate that the count is the same. Use pyspark and Spark Python API. If convenient you are welcome to implement this problem in any other language: Scala, Java or R.
 
 
 
