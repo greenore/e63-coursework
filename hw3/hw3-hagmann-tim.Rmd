@@ -246,7 +246,7 @@ export PATH
 ```
 
 That file has to be sourced in order to be effective.
-```{bash}
+```{bash eval=FALSE}
 source ~/.bash_profile
 ```
 
@@ -256,7 +256,7 @@ Install Spark 2.2 on your VM. Make sure that pyspark is also installed. Demonstr
 ## Install Spark
 There are multible ways to install spark on the EC2 instance. An easy way would be to use the spark_install function inside the sparklyr package. We're using the default installation process trough downloading the tgz file from apache.
 
-```{bash}
+```{bash eval=FALSE}
 # Download Spark
 sudo wget https://d3kbcqa49mib13.cloudfront.net/spark-2.2.0-bin-hadoop2.7.tgz
 
@@ -284,9 +284,17 @@ export PATH
 ```
 
 That file has to be sourced in order to be effective.
-```{bash}
+```{bash eval=FALSE}
 source ~/.bash_profile
 ```
+
+## Check pyspark
+Check if pyspark is correctly installed.
+```{bash}
+python -V
+
+```
+
 
 ## Eliminate warning
 Demonstrate that you can successfully open spark-shell and that you can eliminate most of WARNing messages.
