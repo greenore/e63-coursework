@@ -288,19 +288,23 @@ That file has to be sourced in order to be effective.
 source ~/.bash_profile
 ```
 
-## Check pyspark
-Check if pyspark is correctly installed.
-```{bash}
-python -V
-
+## Check Pyspark
+In order to check if pyspark is correctly installed we can run the pyspark command
+```{bash eval=FALSE}
+pyspark
 ```
 
+```{r echo=FALSE}
+knitr::include_graphics('img/terminal_pyspark.png')
+```
+The image above shows, that pyspark runs correctly.
 
 ## Eliminate warning
 Demonstrate that you can successfully open spark-shell and that you can eliminate most of WARNing messages.
 
 In order to eliminate the error messages we're first renaming the log4j.properties file and setting the log level to ERROR.
-```{bash}
+
+```{bash eval=FALSE}
 # Rename log4j.properties
 sudo mv /opt/spark-2.2.0-bin-hadoop2.7/conf/log4j.properties.template \
   /opt/spark-2.2.0-bin-hadoop2.7/conf/log4j.properties
@@ -308,6 +312,21 @@ sudo mv /opt/spark-2.2.0-bin-hadoop2.7/conf/log4j.properties.template \
 # Edit file
 sudo nano /opt/spark-2.2.0-bin-hadoop2.7/conf/log4j.properties
 ```
+
+## Check Pyspark
+In order to check if the error messages disapeared from spark-shell we can run the following command: 
+```{bash eval=FALSE}
+spark-shell
+```
+
+```{r echo=FALSE}
+knitr::include_graphics('img/terminal_spark-shell.png')
+```
+The image above shows, that pyspark runs correctly.
+
+
+# Problem 3 (15%)
+Find the number of lines in the text file ulysses10.txt that contain word “afternoon” or “night”  or “morning”. In this problem use RDD API.  Do this in two ways, first create a lambda function which will test whether a line contains any one of those 3 words. Second, create a named function in the language of choice that returns TRUE if a line passed to it contains any one of those three words. Demonstrate that the count is the same. Use pyspark and Spark Python API. If convenient you are welcome to implement this problem in any other language: Scala, Java or R.
 
 ## Initialize
 In the following steps we're working heavily in a R environment. In order to set up that environment, the following R code has to be executed. This loads all the necessary packages and functions for the following steps.
@@ -324,28 +343,6 @@ source("scripts/03_functions.R")              # Load project specific functions
 ```
 
 
-
-```{bash eval=FALSE}
-sudo apt install python-pip -y
-sudo -H pip install --upgrade pip
-
-sudo apt install python3-pip -y
-sudo -H pip3 install --upgrade pip
-```
-
-```{r}
-sudo -H pip3 install py4j
-sudo -H pip3 install pyspark
-```
-
-# Download Spark
-```{bash eval=FALSE}
-```
-
-
-
-# Problem 3 (15%)
-Find the number of lines in the text file ulysses10.txt that contain word “afternoon” or “night”  or “morning”. In this problem use RDD API.  Do this in two ways, first create a lambda function which will test whether a line contains any one of those 3 words. Second, create a named function in the language of choice that returns TRUE if a line passed to it contains any one of those three words. Demonstrate that the count is the same. Use pyspark and Spark Python API. If convenient you are welcome to implement this problem in any other language: Scala, Java or R.
 
 # Problem 4 (15%)
 Implement the above task, finding the number of lines with one of those three words in file ulysses10.txt using Dataset/DataFrame API. Again, use the language of your choice.
