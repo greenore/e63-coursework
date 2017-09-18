@@ -181,31 +181,125 @@ chmod +x setup_rstudio.sh
 sudo ./setup_rstudio.sh
 ```
 
-#### Step 10: Install Java
-Next we have to install java as spark is dependend on a correct java installation. 
+#### Step 10: Install Java and Scala
+Next we have to install java as spark is dependend on a correct java installation. We're also installing the sbt client 
 ```{bash eval=FALSE}
-# Install OpenJDK
-sudo apt install default-jdk -y
+# Install OpenJDK and scala
+sudo apt install default-jre default-jdk scala -y
+
+# Install sbt
+echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a /etc/apt/sources.list.d/sbt.list
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823
+sudo apt-get update
+sudo apt install sbt -y
 ```
 
 ## SCP file transfer
 Once the VM is created transfer the attached text file Ulysses10.txt to the home of new user. You can do it using scp (secure copy command) or email.
 
-
-```{r}
-
+In order to transfer the file from the local computer to the server we're opening second terminal on the local computer and are executing the following command:
+```{bash eval=FALSE}
+scp -i SSH/aws-instance.pem \
+  /mnt/c/Local/Education/e63-coursework/hw3/data/ulysses10.txt \
+  <username>@52.57.149.55:~/.
 ```
-
 
 ## Java, Python and Scala version
 Examine the version of Java, Python and Scala on your VM. If any of those versions is below requirements for Spark 2.2 install proper version. Set JAVA_HOME environmental variable. Set your PATH environmental variable properly, so that you can invoke: java, sbt and python commands from any directory on your system.
+
+#### Spark version check
+Spark runs on Java 8+, Python 2.7+/3.4+ and R 3.1+. For the Scala API, Spark 2.2.0 uses Scala 2.11. As we're not going to use the scala API, the sbt client doesn't need to be installed.
 
 ```{bash}
 java -version
 ```
 
+```{bash}
+python -V
+```
+
+```{bash}
+R --version
+```
+
+```{bash}
+scala -version
+```
+
+```{bash}
+sbt sbtVersion
+```
+
+The above outputs show, that the necessary software is up to date. Next we're setting the JAVA_HOME variable.
+
+```{bash}
+~/.bashrc
+```
+
+
+```{bash eval=FALSE}
+# Append java path and source file
+echo 'JAVA_HOME="/usr/lib/jvm/java-8-openjdk-amd64/jre/"' | \
+  sudo tee --append /etc/environment
+source /etc/environment
+```
+
 # Problem 2 (15%)
 Install Spark 2.2 on your VM. Make sure that pyspark is also installed. Demonstrate that you can successfully open spark-shell and that you can eliminate most of WARNing messages.
+
+## Initialize
+In the following steps we're working heavily in a R environment. In order to set up that environment, the following R code has to be executed. This loads all the necessary packages and functions for the following steps.
+
+```{r init, message=FALSE}
+## Options
+options(scipen = 10)                          # Disable scientific notation
+update_package <- FALSE                       # Use old status of packages
+
+## Init files (always execute, eta: 10s)
+source("scripts/01_init.R")                   # Helper functions to load packages
+source("scripts/02_packages.R")               # Load all necessary packages
+source("scripts/03_functions.R")              # Load project specific functions
+```
+
+## Install Spark
+There are multible ways to instlal spark on the EC2 instance. A easy way is to use the spark_install function inside the sparklyr.
+
+```{r}
+spark_install(version = "2.2.0")
+
+library(sparklyr)
+sc <- spark_connect(master = "local")
+
+```
+
+
+```{bash}
+chmod +x /home/tim/spark/spark-2.2.0-bin-hadoop2.7/bin/spark-shell
+/home/tim/spark/spark-2.2.0-bin-hadoop2.7/bin/spark-shell
+```
+
+
+```{bash eval=FALSE}
+sudo apt install python-pip -y
+sudo -H pip install --upgrade pip
+
+sudo apt install python3-pip -y
+sudo -H pip3 install --upgrade pip
+```
+
+```{r}
+sudo -H pip3 install py4j
+sudo -H pip3 install pyspark
+```
+
+# Download Spark
+```{bash eval=FALSE}
+sudo wget https://d3kbcqa49mib13.cloudfront.net/spark-2.2.0-bin-hadoop2.7.tgz
+tar xvf spark-2.2.0-bin-hadoop2.7.tgz
+spark-2.2.0-bin-hadoop2.7/bin/spark-shell
+```
+
+
 
 # Problem 3 (15%)
 Find the number of lines in the text file ulysses10.txt that contain word “afternoon” or “night”  or “morning”. In this problem use RDD API.  Do this in two ways, first create a lambda function which will test whether a line contains any one of those 3 words. Second, create a named function in the language of choice that returns TRUE if a line passed to it contains any one of those three words. Demonstrate that the count is the same. Use pyspark and Spark Python API. If convenient you are welcome to implement this problem in any other language: Scala, Java or R.
