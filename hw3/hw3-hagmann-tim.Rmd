@@ -398,7 +398,7 @@ sudo -H pip install --upgrade pip
 ```
 
 #### Lambda functions
-```{python eval=FALSE"}
+```{python eval=FALSE" warning=FALSE engine.path="/opt/spark-2.2.0-bin-hadoop2.7/bin/pyspark"}
 # Import findspark
 import findspark
 findspark.init()
@@ -417,99 +417,119 @@ print "Number of lines with 'night', 'morning', 'afternoon' :"
 print tofday.count()
 ```
 
-```{bash}
-# Execute python script
-/opt/spark-2.2.0-bin-hadoop2.7/bin/spark-submit \
-  /home/tim/e63-coursework/hw3/scripts/python/lambda_count.py
-```
+#### Lambda functions
+```{python eval=FALSE}
+# Import findspark
+import findspark
+findspark.init()
 
-## Initialize
-In the following steps we're working heavily in a R environment. In order to set up that environment, the following R code has to be executed. This loads all the necessary packages and functions for the following steps.
+# Or the following command
+findspark.init("/opt/spark-2.2.0-bin-hadoop2.7")
 
-```{r init, message=FALSE}
-## Options
-options(scipen = 10)                          # Disable scientific notation
-update_package <- FALSE                       # Use old status of packages
+from pyspark import SparkContext, SparkConf
 
-## Init files (always execute, eta: 10s)
-source("scripts/01_init.R")                   # Helper functions to load packages
-source("scripts/02_packages.R")               # Load all necessary packages
-source("scripts/03_functions.R")              # Load project specific functions
-```
+#conf = SparkConf().setMaster("local").setAppName("PySparkShell")
+#sc = SparkContext(conf = conf)
 
-
-```{r}
-# Set this to where Spark is installed
-Sys.setenv(SPARK_HOME="/opt/spark-2.2.0-bin-hadoop2.7/")
-
-# This line loads SparkR from the installed directory
-.libPaths(c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib"), .libPaths()))
-
-# Load library (from SparkR)
-library(SparkR)
-
-# Load SparkR sesseion
-sparkR.session()
-```
-
-
-
-```{r}
-sc <- spark_connect(spark_home="/opt/spark-2.2.0-bin-hadoop2.7/",
-                    master="local")
-tbl_ulysses <- spark_read_csv(sc, name="tbl_ulysses",
-                              header=FALSE, path="data/ulysses10.txt", delimiter = )
-
-tbl_ulysses <- spark_read_source(sc, name="tbl_ulysses",
-                                 source="data/ulysses10.txt")
-
-
-
-?spark_read_source
-count_lines <- function(sc, path) {
-  spark_context(sc) %>% 
-    invoke("textFile", path, 1L) %>% 
-      invoke("count")
-}
-
-count_lines(sc, tbl_ulysses)
-
-
-```
-
-
-
-```{python}
-# Import 
-from pyspark import SparkConf, SparkContext
-
-conf = SparkConf().setMaster("local").setAppName("MyApp")
-sc = SparkContext(conf = conf)
-tim@ip-172-31-18-124:~/e$
-
-
-
-sc.textFile('file.csv')
-    .map(lambda line: (line.split(',')[0], line.split(',')[1]))
-    .collect()
-
-lines = sc.textFile("file:///home/tim/63-coursework/hw3/data/ulysses/ulysses10.txt")
+lines = sc.textFile("file:///home/tim/ulysses10.txt")
 tofday  = lines.filter(lambda line: "night" in line or "morning" in line or "afternoon" in line)
 print "Number of lines with 'night', 'morning', 'afternoon' :"
 print tofday.count()
 ```
 
+```{bash}
+# Execute python script
+/opt/spark-2.2.0-bin-hadoop2.7/bin/spark-submit \
+  /home/tim/e63-coursework/hw3/scripts/python/rdd_lambda_count.py
+```
 
-
+#### Named function
 Second, create a named function in the language of choice that returns TRUE if a line passed to it contains any one of those three words. Demonstrate that the count is the same. Use pyspark and Spark Python API. If convenient you are welcome to implement this problem in any other language: Scala, Java or R.
 
-
+```{bash}
+# Execute python script
+/opt/spark-2.2.0-bin-hadoop2.7/bin/spark-submit \
+  /home/tim/e63-coursework/hw3/scripts/python/rdd_function_count.py
+```
 
 # Problem 4 (15%)
 Implement the above task, finding the number of lines with one of those three words in file ulysses10.txt using Dataset/DataFrame API. Again, use the language of your choice.
 
+## WordCount program using Spark DataFrame
+I wanted to figure out how to write Word Count Program using Spark DataFrame API, so i followed these steps. When you read the file, spark will create a data frame with single column value, the content of the value column would be the line in the file.
+
+```{bash}
+# Execute python script
+/opt/spark-2.2.0-bin-hadoop2.7/bin/spark-submit \
+  /home/tim/e63-coursework/hw3/scripts/python/df_function_count.py
+```
+
 # Problem 5 (15%)
 Create a standalone Python script that will count all words in file ulysses10.txt. You are expected to produce a single number. Do it using RDD API. If convenient, you are welcome to implement this problem in other languages: Scala, Java or R.
 
+```{python}
+# Import findspark
+import findspark
+findspark.init()
+
+from pyspark import SparkContext, SparkConf
+
+conf = SparkConf().setMaster("local").setAppName("MyApp")
+sc = SparkContext(conf = conf)
+
+lines = sc.textFile("file:///home/tim/ulysses10.txt")
+
+counts = lines.flatMap(lambda x: x.split(' ')) \
+                  .map(lambda x: (x, 1)) \
+                  .reduceByKey(lambda x,y:x+y) \
+                  .map(lambda x : x[1]).sum()
+
+print(counts)
+
+```
+
+
 # Problem 6 (15%)
 Create a standalone Python script that will count all words in file ulysses10.txt. You are expected to produce a single number. Do it using Dataset/DataFrame API. If convenient, you are welcome to implement this problem in other languages: Scala, Java or R.
+
+```{python}
+# Import findspark
+import findspark
+findspark.init()
+
+# Or the following command
+findspark.init("/opt/spark-2.2.0-bin-hadoop2.7")
+
+from pyspark import SparkContext, SparkConf
+from pyspark.sql import SparkSession
+from pyspark import SparkContext, SparkConf
+
+# Create Session
+spark = SparkSession.builder.appName("PS6").master("local").getOrCreate()
+
+# Read data
+df = spark.read.text("file:///home/tim/ulysses10.txt")
+
+# Next split each of the line into words using split function. This will create a new DataFrame with words column, each words column would have array of words for that line.
+from pyspark.sql.functions import split
+wordsDF = df.select(split(df.value, " ").alias("words"))
+
+# Next use explode transformation to convert the words array into a dataframe with word column. This is equivalent of using flatMap() method on RDD 
+from pyspark.sql.functions import explode
+wordDF = wordsDF.select(explode(wordsDF.words).alias("word"))
+
+print("Number of words: ")
+print(wordDF.count())
+
+# Get unique words
+wordCountDF = wordDF.groupBy("word").count()
+
+print("Number of unique words: ")
+print(wordCountDF.count())
+```
+
+Of course, we didn't exclude any commas, points etc. as well as emply lines are also still present in the dataframe.
+
+http://www.sparktutorials.net/Getting+Started+with+Apache+Spark+RDDs
+https://datamize.wordpress.com/2015/02/08/visualizing-basic-rdd-operations-through-wordcount-in-pyspark/
+http://www.mccarroll.net/blog/pyspark2/index.html

@@ -1,0 +1,117 @@
+## Initialize
+In the following steps we're working heavily in a R environment. In order to set up that environment, the following R code has to be executed. This loads all the necessary packages and functions for the following steps.
+
+
+#### Switch to SparkR
+```{r message=FALSE}
+# Set this to where Spark is installed
+Sys.setenv(SPARK_HOME="/opt/spark-2.2.0-bin-hadoop2.7/")
+
+# This line loads SparkR from the installed directory
+.libPaths(c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib"), .libPaths()))
+
+# Load library (from SparkR)
+library(SparkR)
+
+# Load SparkR sesseion
+sparkR.session()
+```
+
+```{r init, message=FALSE}
+## Options
+options(scipen = 10)                          # Disable scientific notation
+update_package <- FALSE                       # Use old status of packages
+
+## Init files (always execute, eta: 10s)
+source("scripts/01_init.R")                   # Helper functions to load packages
+source("scripts/02_packages.R")               # Load all necessary packages
+source("scripts/03_functions.R")              # Load project specific functions
+```
+
+```{r}
+# Set this to where Spark is installed
+Sys.setenv(SPARK_HOME="/opt/spark-2.2.0-bin-hadoop2.7/")
+
+# This line loads SparkR from the installed directory
+.libPaths(c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib"), .libPaths()))
+
+# Load library (from SparkR)
+library(SparkR)
+
+# Load SparkR sesseion
+sparkR.session()
+```
+
+```{python}
+spark = SparkSession.builder.appName("PS6").master("local").getOrCreate()
+
+
+
+```
+
+
+```{r}
+df <- SparkR::read.text("file:///home/tim/ulysses10.txt")
+
+df$value %in% "night"
+
+df <- read.json("examples/src/main/resources/people.json")
+```
+
+
+```{bash eval=FALSE}
+sudo /opt/spark-2.2.0-bin-hadoop2.7/sbin/start-master.sh
+sudo /opt/spark-2.2.0-bin-hadoop2.7/sbin/stop-master.sh
+```
+
+
+
+```{python message=FALSE}
+# Import findspark
+import findspark
+findspark.init()
+
+# Or the following command
+findspark.init("/opt/spark-2.2.0-bin-hadoop2.7")
+
+from pyspark import SparkContext, SparkConf
+from pyspark.sql import SparkSession
+from pyspark import SparkContext, SparkConf
+
+# Create Session
+spark = SparkSession.builder.master("local").appName("spark session example").getOrCreate()
+
+# Read data
+df = spark.read.text("file:///home/tim/ulysses10.txt")
+df.show(10, truncate=False)
+```
+
+Next split each of the line into words using split function. This will create a new DataFrame with words column, each words column would have array of words for that line.
+
+```{python}
+from pyspark.sql.functions import split
+wordsDF = df.select(split(df.value, " ").alias("words"))
+wordsDF.show(10, truncate=False)
+```
+
+Next use explode transformation to convert the words array into a dataframe with word column. This is equivalent of using flatMap() method on RDD 
+
+```{python}
+from pyspark.sql.functions import explode
+wordDF = wordsDF.select(explode(wordsDF.words).alias("word"))
+wordDF.show(10,truncate = False)
+```
+
+Now you have data frame with each line containing single word in the file. So group the data frame based on word and count the occurrence of each word.
+
+```{python}
+wordCountDF = wordDF.groupBy("word").count()
+wordCountDF.show(truncate = False)
+```
+
+This is the code you need if you want to figure out 20 top most words in the file:
+
+```{python}
+wordCountDF.filter(wordCountDF.word.isin("night", "morning", "afternoon")).orderBy("count", ascending=0).show(truncate = False)
+
+```
