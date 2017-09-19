@@ -423,17 +423,6 @@ print tofday.count()
   /home/tim/e63-coursework/hw3/scripts/python/lambda_count.py
 ```
 
-
-```{r}
-# Set this to where Spark is installed
-Sys.setenv(SPARK_HOME="/Users/username/spark")
-# This line loads SparkR from the installed directory
-.libPaths(c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib"), .libPaths()))
-library(SparkR)
-sparkR.session()
-```
-
-
 ## Initialize
 In the following steps we're working heavily in a R environment. In order to set up that environment, the following R code has to be executed. This loads all the necessary packages and functions for the following steps.
 
@@ -447,6 +436,22 @@ source("scripts/01_init.R")                   # Helper functions to load package
 source("scripts/02_packages.R")               # Load all necessary packages
 source("scripts/03_functions.R")              # Load project specific functions
 ```
+
+
+```{r}
+# Set this to where Spark is installed
+Sys.setenv(SPARK_HOME="/opt/spark-2.2.0-bin-hadoop2.7/")
+
+# This line loads SparkR from the installed directory
+.libPaths(c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib"), .libPaths()))
+
+# Load library (from SparkR)
+library(SparkR)
+
+# Load SparkR sesseion
+sparkR.session()
+```
+
 
 
 ```{r}
