@@ -114,7 +114,6 @@ aws ec2 run-instances \
     --block-device-mapping "[ { \"DeviceName\": \"/dev/sda1\", \"Ebs\": { \"VolumeSize\": 32 } } ]"
 ```
 
-
 ```{bash eval=FALSE echo=FALSE}
 # Start/Stop Instance 
 aws ec2 start-instances --instance-ids i-0d52c859a139da090
@@ -379,7 +378,6 @@ heavens.count()
 ```
 
 #### Lambda functions
-
 ```{python eval=FALSE"}
 def hasLife(line):
   return "life" in line # At the beginning hit a tab
@@ -393,14 +391,8 @@ print lifeLines.first()
 ```
 
 
-
-```{bash}
-$SPARK_HOME/bin/spark-submit /scripts/python/your_script.py
-```
-
-
 #### Install findspark
-```{bash}
+```{bash eval=FALSE} 
 sudo -H pip install findspark 
 sudo -H pip install --upgrade pip
 ```
@@ -426,8 +418,21 @@ print tofday.count()
 ```
 
 ```{bash}
-spark-submit /home/tim/e63-coursework/hw3/scripts/python/lambda_count.py
+# Execute python script
+/opt/spark-2.2.0-bin-hadoop2.7/bin/spark-submit \
+  /home/tim/e63-coursework/hw3/scripts/python/lambda_count.py
 ```
+
+
+```{r}
+# Set this to where Spark is installed
+Sys.setenv(SPARK_HOME="/Users/username/spark")
+# This line loads SparkR from the installed directory
+.libPaths(c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib"), .libPaths()))
+library(SparkR)
+sparkR.session()
+```
+
 
 ## Initialize
 In the following steps we're working heavily in a R environment. In order to set up that environment, the following R code has to be executed. This loads all the necessary packages and functions for the following steps.

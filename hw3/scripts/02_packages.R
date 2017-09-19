@@ -1,6 +1,6 @@
 ## CRAN packages
 tidyverse_packages <- c("tidyverse")
-data_packages <- c("jsonlite", "readr", "reshape2", "sparklyr")
+data_packages <- c("jsonlite", "readr", "reshape2", "sparklyr", "sparkR")
 visualization_packages <- c("RColorBrewer", "pander", "scales",
                             "gridExtra", "ggbeeswarm",
                             "ggthemes")
