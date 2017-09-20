@@ -1,0 +1,10 @@
+# R Files
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# Spark Files
+*/metastore_db
+*derby.log
+*log4j.spark.log

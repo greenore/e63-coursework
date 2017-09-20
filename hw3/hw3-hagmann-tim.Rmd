@@ -202,12 +202,14 @@ sudo apt install sbt -y
 ## SCP file transfer
 Once the VM is created transfer the attached text file Ulysses10.txt to the home of new user. You can do it using scp (secure copy command) or email.
 
-In order to transfer the file from the local computer to the server we're opening second terminal on the local computer and are executing the following command:
+In order to transfer the file trough SCP from the machine to the server we can open a second terminal on the local computer and the follwoing command is transfering the file to the server.
 ```{bash eval=FALSE}
 scp -i SSH/aws-instance.pem \
   /mnt/c/Local/Education/e63-coursework/hw3/data/ulysses10.txt \
   tim@52.57.149.55:~/.
 ```
+
+**Note:** In this project I'm tranfering all the file trough git over github to the server. 
 
 ## Java, Python and Scala version
 Examine the version of Java, Python and Scala on your VM. If any of those versions is below requirements for Spark 2.2 install proper version. Set JAVA_HOME environmental variable. Set your PATH environmental variable properly, so that you can invoke: java, sbt and python commands from any directory on your system.
@@ -305,6 +307,22 @@ That file has to be sourced in order to be effective.
 source ~/.bash_profile
 ```
 
+** Note: ** When launching spark a metastore_db directory and the derby.log file are being created at the startup location. Working with a version control system this behaviour is rather anoying. However, the default location of the folder can be specified in the *spark-defaults.conf* file. This is what we're going to do: 
+
+```{bash eval=FALSE}
+# Rename log4j.properties
+sudo cp /opt/spark-2.2.0-bin-hadoop2.7/conf/spark-defaults.conf.template \
+  /opt/spark-2.2.0-bin-hadoop2.7/conf/spark-defaults.conf
+
+# Append line to the file
+echo 'spark.driver.extraJavaOptions -Dderby.system.home=/tmp/derby' | \
+  sudo tee --append /opt/spark-2.2.0-bin-hadoop2.7/conf/spark-defaults.conf
+
+sudo nano /opt/spark-2.2.0-bin-hadoop2.7/conf/spark-defaults.conf
+
+```
+
+
 ## Check Pyspark
 In order to check if pyspark is correctly installed we can run the pyspark command
 ```{bash eval=FALSE}
@@ -319,11 +337,11 @@ The image above shows, that pyspark runs correctly.
 ## Eliminate warning
 Demonstrate that you can successfully open spark-shell and that you can eliminate most of WARNing messages.
 
-In order to eliminate the error messages we're first renaming the log4j.properties file and setting the log level to ERROR and log4j.rootCategory=ERROR.
+In order to eliminate the error messages we're first creating the log4j.properties file from the template file and setting the log level to ERROR and log4j.rootCategory=ERROR.
 
 ```{bash eval=FALSE}
-# Rename log4j.properties
-sudo mv /opt/spark-2.2.0-bin-hadoop2.7/conf/log4j.properties.template \
+# Create log4j.properties
+sudo cp /opt/spark-2.2.0-bin-hadoop2.7/conf/log4j.properties.template \
   /opt/spark-2.2.0-bin-hadoop2.7/conf/log4j.properties
 
 # Edit file
@@ -353,26 +371,35 @@ sudo /opt/spark-2.2.0-bin-hadoop2.7/sbin/stop-master.sh
 
 #### Count lines (RDD)
 ```{python eval=FALSE"}
-lines = sc.textFile("/home/tim/ulysses10.txt")
+# Import findspark
+import findspark
+findspark.init()
+
+from pyspark import SparkContext, SparkConf
+
+conf = SparkConf().setMaster("local").setAppName("MyApp")
+sc = SparkContext(conf = conf)
+
+lines = sc.textFile("/home/tim/e63-coursework/hw3/data/ulysses10.txt")
 lines.count()
 ```
 
 #### Count lines (Dataset)
 ```{python eval=FALSE"}
-lines = spark.read.text("/home/tim/ulysses10.txt")
+lines = spark.read.text("/home/tim/e63-coursework/hw3/data/ulysses10.txt")
 lines.count()
 ```
 
 #### Filter words (RDD)
 ```{python eval=FALSE"}
-lines = sc.textFile("/home/tim/ulysses10.txt")
+lines = sc.textFile("/home/tim/e63-coursework/hw3/data/ulysses10.txt")
 heaven = lines.filter(lambda line: "heaven" in line)
 heaven.count()
 ```
 
 #### Filter words (Dataframe)
 ```{python eval=FALSE"}
-dset = spark.read.text("/home/tim/ulysses10.txt")
+dset = spark.read.text("/home/tim/e63-coursework/hw3/data/ulysses10.txt")
 heavens = dset.filter(dset.value.contains('heaven'))
 heavens.count()
 ```
@@ -383,13 +410,12 @@ def hasLife(line):
   return "life" in line # At the beginning hit a tab
 
 
-lines = sc.textFile("file:///home/tim/ulysses10.txt")
+lines = sc.textFile("file:///home/tim/e63-coursework/hw3/data/ulysses10.txt")
 lifeLines = lines.filter(hasLife)
 lifeLines.count()
 print lifeLines.first()
 
 ```
-
 
 #### Install findspark
 ```{bash eval=FALSE} 
@@ -403,15 +429,12 @@ sudo -H pip install --upgrade pip
 import findspark
 findspark.init()
 
-# Or the following command
-findspark.init("/opt/spark-2.2.0-bin-hadoop2.7")
-
 from pyspark import SparkContext, SparkConf
 
 conf = SparkConf().setMaster("local").setAppName("MyApp")
 sc = SparkContext(conf = conf)
 
-lines = sc.textFile("file:///home/tim/ulysses10.txt")
+lines = sc.textFile("file:///home/tim/e63-coursework/hw3/data/ulysses10.txt")
 tofday  = lines.filter(lambda line: "night" in line or "morning" in line or "afternoon" in line)
 print "Number of lines with 'night', 'morning', 'afternoon' :"
 print tofday.count()
@@ -431,7 +454,7 @@ from pyspark import SparkContext, SparkConf
 #conf = SparkConf().setMaster("local").setAppName("PySparkShell")
 #sc = SparkContext(conf = conf)
 
-lines = sc.textFile("file:///home/tim/ulysses10.txt")
+lines = sc.textFile("file:///home/tim/e63-coursework/hw3/data/ulysses10.txt")
 tofday  = lines.filter(lambda line: "night" in line or "morning" in line or "afternoon" in line)
 print "Number of lines with 'night', 'morning', 'afternoon' :"
 print tofday.count()
@@ -477,7 +500,7 @@ from pyspark import SparkContext, SparkConf
 conf = SparkConf().setMaster("local").setAppName("MyApp")
 sc = SparkContext(conf = conf)
 
-lines = sc.textFile("file:///home/tim/ulysses10.txt")
+lines = sc.textFile("file:///home/tim/e63-coursework/hw3/data/ulysses10.txt")
 
 counts = lines.flatMap(lambda x: x.split(' ')) \
                   .map(lambda x: (x, 1)) \
@@ -508,7 +531,7 @@ from pyspark import SparkContext, SparkConf
 spark = SparkSession.builder.appName("PS6").master("local").getOrCreate()
 
 # Read data
-df = spark.read.text("file:///home/tim/ulysses10.txt")
+df = spark.read.text("file:///home/tim/e63-coursework/hw3/data/ulysses10.txt")
 
 # Next split each of the line into words using split function. This will create a new DataFrame with words column, each words column would have array of words for that line.
 from pyspark.sql.functions import split
