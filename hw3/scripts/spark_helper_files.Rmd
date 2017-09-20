@@ -1,0 +1,24 @@
+#### Load Spark / kill pyspark
+```{bash eval=FALSE}
+sudo /opt/spark-2.2.0-bin-hadoop2.7/sbin/start-master.sh
+sudo /opt/spark-2.2.0-bin-hadoop2.7/sbin/stop-master.sh
+
+#to find what all pyspark process are running:
+ps -ef | grep pyspark
+kill -9 1392
+```
+
+#### Switch to SparkR
+```{r message=FALSE}
+# Set this to where Spark is installed
+Sys.setenv(SPARK_HOME="/opt/spark-2.2.0-bin-hadoop2.7/")
+
+# This line loads SparkR from the installed directory
+.libPaths(c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib"), .libPaths()))
+
+# Load library (from SparkR)
+library(SparkR)
+
+# Load SparkR sesseion
+sparkR.session()
+```

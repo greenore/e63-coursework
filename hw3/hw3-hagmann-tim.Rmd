@@ -4,14 +4,14 @@ title: |
 author: "Tim Hagmann"
 date: '`r format(Sys.Date(), "%B %d, %Y")`'
 output:
-  pdf_document:
-    toc: yes
   html_document:
     css: css/styles.css
     highlight: tango
     theme: flatly
     toc: yes
     toc_float: yes
+  pdf_document:
+    toc: yes
   word_document:
     toc: yes
 linkcolor: blue
@@ -33,9 +33,7 @@ knitr::opts_chunk$set(warning=FALSE, message=FALSE,
 ```
 
 # Introduction
-The following assignement is concerned with the installation and application of Apache Spark. Spark is an open-source cluster-computing framework which provides programmers with an application programming interface centered on a data structure called the resilient distributed dataset (RDD), a read-only multiset of data items distributed over a cluster of machines, that is maintained in a fault-tolerant way. It was developed in response to limitations in the MapReduce cluster computing paradigm, which forces a particular linear dataflow structure on distributed programs: MapReduce programs read input data from disk, map a function across the data, reduce the results of the map, and store reduction results on disk. Spark provides an interface for programming entire clusters with implicit data parallelism and fault-tolerance.
-
-Spark is implemented in Scala (a Java dialect) and accessible from software written in other languages such as Python or R. 
+The following assignement is concerned with the installation and application of Apache Spark. Spark is an open-source cluster-computing framework which provides programmers with an application programming interface (API). It was developed in response to limitations in the MapReduce cluster computing paradigm, which forces a particular linear dataflow structure on distributed programs: MapReduce programs read input data from disk, map a function across the data, reduce the results of the map, and store reduction results on disk. Spark provides an interface for programming entire clusters with implicit data parallelism and fault-tolerance.
 
 # Problem 1 (20%)
 Create your own Virtual Machine with a Linux operating system. The lecture notes speak about CentOS. You are welcome to work with another Linux OS. When creating the VM, create an administrative user. Call that user whatever you feel like.
@@ -73,7 +71,8 @@ aws ec2 create-key-pair --region eu-central-1 --key-name aws-instance \
 ```
 
 #### Step 4: Network & Security
-Next we're setting up the network and security settings. Out of convinience, we're allowing all IP addresses to access our AWS Server. We're also oppening the port 22 (ssh), 80 (http), 443 (https), 8787 (rstudio).
+Next we're setting up the network and security settings. Out of convinience, we're allowing all IP addresses to access our AWS Server. We're also oppening the port 22 (ssh), 80 (http), 443 (https), 8787 (rstudio) and 4040, 4041, 7077 (Spark).
+
 ```{bash eval=FALSE}
 # set MYIP to external IP address
 MYIP=$(curl -s http://myip.dnsomatic.com | grep -P '[\d.]')
@@ -97,6 +96,13 @@ aws ec2 authorize-security-group-ingress --group-name aws-sec-group \
     --protocol tcp --port 8787 --cidr $ALLIP --region eu-central-1
 aws ec2 authorize-security-group-ingress --group-name aws-sec-group \
     --protocol tcp --port 443 --cidr $ALLIP --region eu-central-1
+aws ec2 authorize-security-group-ingress --group-name aws-sec-group \
+    --protocol tcp --port 4040 --cidr $ALLIP --region eu-central-1
+aws ec2 authorize-security-group-ingress --group-name aws-sec-group \
+    --protocol tcp --port 4041 --cidr $ALLIP --region eu-central-1
+aws ec2 authorize-security-group-ingress --group-name aws-sec-group \
+    --protocol tcp --port 7077 --cidr $ALLIP --region eu-central-1
+
 ```
 
 #### Step 5: Launch EC2 Instance
@@ -111,42 +117,39 @@ aws ec2 run-instances \
     --key-name aws-instance \
     --security-group-ids aws-sec-group \
     --region eu-central-1 \
-    --block-device-mapping "[ { \"DeviceName\": \"/dev/sda1\", \"Ebs\": { \"VolumeSize\": 32 } } ]"
-```
-
-```{bash eval=FALSE echo=FALSE}
-# Start/Stop Instance 
-aws ec2 start-instances --instance-ids i-0d52c859a139da090
-aws ec2 stop-instances --instance-ids i-0d52c859a139da090
+    --block-device-mapping \
+    "[ { \"DeviceName\": \"/dev/sda1\", \"Ebs\": { \"VolumeSize\": 32 } } ]"
 ```
 
 #### Step 6: Associate IP Address 
 The started instance has currently a *flexible* ip address. This means, that when restarting the instance, a new ip address gets associated to the server. In order to avoid this, we can associate a elastic ip address to the server. First we're reading the id of our instance and the bought elastic ip address.
 
 ```{bash}
- # Get instances id and ip
-aws ec2 describe-instances --query \
-  'Reservations[*].Instances[*].[InstanceId,Tags[?Key==`Name`].Value|[0],State.Name,PrivateIpAddress,PublicIpAddress]' \
-  --output text | column -t
+# Get instances id
+aws ec2 describe-instances --query 'Reservations[].Instances[].[InstanceId, State.Name]' --output text
 ```
+
 ```{bash}
 # Get elastic IP addresses
-aws ec2 describe-addresses
+x=$(aws ec2 describe-addresses)
+y=$(echo $x | awk '{print $2}')
+echo $y
 ```
 
 With the above instance id (i-0d52c859a139da090) and elastic ip id (eipalloc-a26c62cb) we can associate the IP address.
 
 ```{bash eval=FALSE}
 # Associate IP address
-aws ec2 associate-address --instance-id i-0d52c859a139da090 --allocation-id eipalloc-a26c62cb
+aws ec2 associate-address --instance-id i-0d52c859a139da090 \
+  --allocation-id eipalloc-a26c62cb
 ```
 
 #### Step 7: SSH into EC2 Instance
-Having associated instance ip (52.57.149.55) we can now ssh into the server. 
+Having associated instance **ip_address** (xx.xx.xxx.xx) we can now ssh into the server. 
 
 ```{bash eval=FALSE}
 # SSH into instance
-ssh -i SSH/aws-instance.pem ubuntu@52.57.149.55
+ssh -i SSH/aws-instance.pem ubuntu@<ip_address>
 ```
 
 #### Step 8: Add user
@@ -168,7 +171,7 @@ sudo chmod 600 /home/tim/.ssh/authorized_keys
 ```
 
 #### Step 9: Enable Swapping (optional)
-It might be necessary to enable swapping. This is especially the case with the smaller instances.
+Because of the limited amount of RAM it might be necessary to enable swapping. This isn't necessary the case when using bigger instances.
 
 ```{bash eval=FALSE}
 sudo /bin/dd if=/dev/zero of=/var/swap.1 bs=1M count=2048
@@ -193,8 +196,10 @@ Next we have to install java as spark is dependend on a correct java installatio
 sudo apt install default-jre default-jdk scala -y
 
 # Install sbt
-echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a /etc/apt/sources.list.d/sbt.list
-sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823
+echo "deb https://dl.bintray.com/sbt/debian /" \
+  | sudo tee -a /etc/apt/sources.list.d/sbt.list
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 \
+  --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823
 sudo apt-get update
 sudo apt install sbt -y
 ```
@@ -202,14 +207,14 @@ sudo apt install sbt -y
 ## SCP file transfer
 Once the VM is created transfer the attached text file Ulysses10.txt to the home of new user. You can do it using scp (secure copy command) or email.
 
-In order to transfer the file trough SCP from the machine to the server we can open a second terminal on the local computer and the follwoing command is transfering the file to the server.
+In order to transfer the file trough SCP from the machine to the server we can open a second terminal on the local computer and the following command is transfering the file to the server.
 ```{bash eval=FALSE}
 scp -i SSH/aws-instance.pem \
   /mnt/c/Local/Education/e63-coursework/hw3/data/ulysses10.txt \
-  tim@52.57.149.55:~/.
+  tim@<ip_address>:~/.
 ```
 
-**Note:** In this project I'm tranfering all the file trough git over github to the server. 
+**Note:** In this project all the files are transfer trough git over a github account. That means the above code is not actually executed.
 
 ## Java, Python and Scala version
 Examine the version of Java, Python and Scala on your VM. If any of those versions is below requirements for Spark 2.2 install proper version. Set JAVA_HOME environmental variable. Set your PATH environmental variable properly, so that you can invoke: java, sbt and python commands from any directory on your system.
@@ -273,7 +278,7 @@ source ~/.bash_profile
 Install Spark 2.2 on your VM. Make sure that pyspark is also installed. Demonstrate that you can successfully open spark-shell and that you can eliminate most of WARNing messages.
 
 ## Install Spark
-There are multible ways to install spark on the EC2 instance. An easy way would be to use the spark_install function inside the sparklyr package. We're using the default installation process trough downloading the tgz file from apache.
+There are multiple ways to install spark on the EC2 instance. An easy way would be to use the spark_install function inside the sparklyr package. We're using the default installation process trough downloading the tgz file from apache.
 
 ```{bash eval=FALSE}
 # Download Spark
@@ -307,24 +312,21 @@ That file has to be sourced in order to be effective.
 source ~/.bash_profile
 ```
 
-** Note: ** When launching spark a metastore_db directory and the derby.log file are being created at the startup location. Working with a version control system this behaviour is rather anoying. However, the default location of the folder can be specified in the *spark-defaults.conf* file. This is what we're going to do: 
+## Spark config
+** Note: ** When launching spark a metastore_db directory and the derby.log file are being created at the start-up location. Working with a version control system this behavior is rather annoying (i.e., version controling a database doesn't make a lot of sense). However, the default location of the folder can be specified in the *spark-defaults.conf* file. This is what we're going to do: 
 
 ```{bash eval=FALSE}
-# Rename log4j.properties
+# Rename spark-defaults
 sudo cp /opt/spark-2.2.0-bin-hadoop2.7/conf/spark-defaults.conf.template \
   /opt/spark-2.2.0-bin-hadoop2.7/conf/spark-defaults.conf
 
 # Append line to the file
 echo 'spark.driver.extraJavaOptions -Dderby.system.home=/tmp/derby' | \
   sudo tee --append /opt/spark-2.2.0-bin-hadoop2.7/conf/spark-defaults.conf
-
-sudo nano /opt/spark-2.2.0-bin-hadoop2.7/conf/spark-defaults.conf
-
 ```
 
-
 ## Check Pyspark
-In order to check if pyspark is correctly installed we can run the pyspark command
+In order to check if pyspark is installed we can run the pyspark command
 ```{bash eval=FALSE}
 pyspark
 ```
@@ -332,24 +334,25 @@ pyspark
 ```{r echo=FALSE}
 knitr::include_graphics('img/terminal_pyspark.png')
 ```
-The image above shows, that pyspark runs correctly.
+The image above shows, that pyspark does work.
 
 ## Eliminate warning
 Demonstrate that you can successfully open spark-shell and that you can eliminate most of WARNing messages.
 
-In order to eliminate the error messages we're first creating the log4j.properties file from the template file and setting the log level to ERROR and log4j.rootCategory=ERROR.
+In order to eliminate the error messages in the spark-shell we're first creating the log4j.properties file from the template file and setting the log level to ERROR and log4j.rootCategory=ERROR.
 
 ```{bash eval=FALSE}
 # Create log4j.properties
-sudo cp /opt/spark-2.2.0-bin-hadoop2.7/conf/log4j.properties.template \
+sudo mv /opt/spark-2.2.0-bin-hadoop2.7/conf/log4j.properties.template \
   /opt/spark-2.2.0-bin-hadoop2.7/conf/log4j.properties
 
 # Edit file
 sudo nano /opt/spark-2.2.0-bin-hadoop2.7/conf/log4j.properties
 ```
 
-## Check Pyspark
-In order to check if the error messages disapeared from spark-shell we can run the following command: 
+## Check Spark-Shell
+In order to check if the error messages disappeared from spark-shell we can run the following command: 
+
 ```{bash eval=FALSE}
 spark-shell
 ```
@@ -357,202 +360,211 @@ spark-shell
 ```{r echo=FALSE}
 knitr::include_graphics('img/terminal_spark-shell.png')
 ```
-The image above shows, that pyspark runs correctly.
+The image above shows, that spark-shell runs correctly.
 
 # Problem 3 (15%)
 Find the number of lines in the text file ulysses10.txt that contain word *“afternoon”* or *“night”* or *“morning”*. In this problem use RDD API. Do this in two ways, first create a lambda function which will test whether a line contains any one of those 3 words.
 
-
-#### Load Spark
-```{bash eval=FALSE}
-sudo /opt/spark-2.2.0-bin-hadoop2.7/sbin/start-master.sh
-sudo /opt/spark-2.2.0-bin-hadoop2.7/sbin/stop-master.sh
-```
-
-#### Count lines (RDD)
-```{python eval=FALSE"}
-# Import findspark
-import findspark
-findspark.init()
-
-from pyspark import SparkContext, SparkConf
-
-conf = SparkConf().setMaster("local").setAppName("MyApp")
-sc = SparkContext(conf = conf)
-
-lines = sc.textFile("/home/tim/e63-coursework/hw3/data/ulysses10.txt")
-lines.count()
-```
-
-#### Count lines (Dataset)
-```{python eval=FALSE"}
-lines = spark.read.text("/home/tim/e63-coursework/hw3/data/ulysses10.txt")
-lines.count()
-```
-
-#### Filter words (RDD)
-```{python eval=FALSE"}
-lines = sc.textFile("/home/tim/e63-coursework/hw3/data/ulysses10.txt")
-heaven = lines.filter(lambda line: "heaven" in line)
-heaven.count()
-```
-
-#### Filter words (Dataframe)
-```{python eval=FALSE"}
-dset = spark.read.text("/home/tim/e63-coursework/hw3/data/ulysses10.txt")
-heavens = dset.filter(dset.value.contains('heaven'))
-heavens.count()
-```
-
-#### Lambda functions
-```{python eval=FALSE"}
-def hasLife(line):
-  return "life" in line # At the beginning hit a tab
-
-
-lines = sc.textFile("file:///home/tim/e63-coursework/hw3/data/ulysses10.txt")
-lifeLines = lines.filter(hasLife)
-lifeLines.count()
-print lifeLines.first()
-
-```
-
 #### Install findspark
+We're going to use the standard python 2.7 interpreter to solve the above problem. In order to do this we're first installing findspark with pip
+
 ```{bash eval=FALSE} 
 sudo -H pip install findspark 
-sudo -H pip install --upgrade pip
 ```
 
-#### Lambda functions
-```{python eval=FALSE" warning=FALSE engine.path="/opt/spark-2.2.0-bin-hadoop2.7/bin/pyspark"}
-# Import findspark
-import findspark
-findspark.init()
-
-from pyspark import SparkContext, SparkConf
-
-conf = SparkConf().setMaster("local").setAppName("MyApp")
-sc = SparkContext(conf = conf)
-
-lines = sc.textFile("file:///home/tim/e63-coursework/hw3/data/ulysses10.txt")
-tofday  = lines.filter(lambda line: "night" in line or "morning" in line or "afternoon" in line)
-print "Number of lines with 'night', 'morning', 'afternoon' :"
-print tofday.count()
-```
-
-#### Lambda functions
+## i) Count lines (RDD)
+Next we're using a lambda function to count the number of *night*, *morning* and *afternoon* occurrences in the text.
 ```{python eval=FALSE}
 # Import findspark
 import findspark
-findspark.init()
-
-# Or the following command
 findspark.init("/opt/spark-2.2.0-bin-hadoop2.7")
 
 from pyspark import SparkContext, SparkConf
 
-#conf = SparkConf().setMaster("local").setAppName("PySparkShell")
-#sc = SparkContext(conf = conf)
+conf = SparkConf().setMaster("local").setAppName("p3_rdd_lambda")
+sc = SparkContext(conf = conf)
 
-lines = sc.textFile("file:///home/tim/e63-coursework/hw3/data/ulysses10.txt")
-tofday  = lines.filter(lambda line: "night" in line or "morning" in line or "afternoon" in line)
-print "Number of lines with 'night', 'morning', 'afternoon' :"
-print tofday.count()
+rdd_lines = sc.textFile("file:///home/tim/e63-coursework/hw3/data/ulysses10.txt")
+
+rdd_filt_words = rdd_lines.filter(lambda line: "night" in line or "morning" in
+                                  line or "afternoon" in line)
+
+print "Number of lines with 'morning', 'afternoon', 'night':"
+print rdd_filt_words.count()
+sc.stop()
 ```
 
-```{bash}
+```{bash echo=FALSE}
 # Execute python script
 /opt/spark-2.2.0-bin-hadoop2.7/bin/spark-submit \
-  /home/tim/e63-coursework/hw3/scripts/python/rdd_lambda_count.py
+  /home/tim/e63-coursework/hw3/scripts/p3_rdd_lambda_count.py
 ```
 
-#### Named function
-Second, create a named function in the language of choice that returns TRUE if a line passed to it contains any one of those three words. Demonstrate that the count is the same. Use pyspark and Spark Python API. If convenient you are welcome to implement this problem in any other language: Scala, Java or R.
+## ii) Named function (RDD)
+Second, create a named function in the language of choice that returns TRUE if a line passed to it contains any one of those three words. Demonstrate that the count is the same. Use pyspark and Spark Python API.
 
-```{bash}
+```{python eval=FALSE}
+# Import findspark
+import findspark
+findspark.init("/opt/spark-2.2.0-bin-hadoop2.7")
+from pyspark import SparkConf, SparkContext
+
+conf = SparkConf().setMaster("local").setAppName("p3_rdd_function")
+sc = SparkContext(conf = conf)
+
+# Define function
+def has_word_in(line):
+    return ("night" in line or "morning" in line or "afternoon" in line)
+
+rdd_lines = sc.textFile("file:///home/tim/e63-coursework/hw3/data/ulysses10.txt")
+rdd_linematch = rdd_lines.filter(has_word_in)
+
+print "Number of lines with 'morning', 'afternoon', 'night':"
+print rdd_linematch.count()
+sc.stop()
+```
+
+```{bash echo=FALSE}
 # Execute python script
 /opt/spark-2.2.0-bin-hadoop2.7/bin/spark-submit \
-  /home/tim/e63-coursework/hw3/scripts/python/rdd_function_count.py
+  /home/tim/e63-coursework/hw3/scripts/p3_rdd_function_count.py
 ```
 
 # Problem 4 (15%)
-Implement the above task, finding the number of lines with one of those three words in file ulysses10.txt using Dataset/DataFrame API. Again, use the language of your choice.
+Implement the above task, finding the number of lines with one of those three words in file ulysses10.txt using Dataset/DataFrame API.
 
-## WordCount program using Spark DataFrame
-I wanted to figure out how to write Word Count Program using Spark DataFrame API, so i followed these steps. When you read the file, spark will create a data frame with single column value, the content of the value column would be the line in the file.
+## Word count (DF)
+Using the dataframe API requires to use different syntax. Furthermore, the session is also created in a different fashion. 
 
-```{bash}
+```{python eval=FALSE}
+# Import libraries
+import findspark
+findspark.init("/opt/spark-2.2.0-bin-hadoop2.7")
+from pyspark.sql import SparkSession
+
+# Create Session
+spark = SparkSession.builder.master("local").appName("p4_df_filter_count").getOrCreate()
+
+# Read data
+tbl_ulysses = spark.read.text("file:///home/tim/e63-coursework/hw3/data/ulysses10.txt")
+
+tbl_lines = tbl_ulysses.filter(tbl_ulysses.value.contains('afternoon') |
+                               tbl_ulysses.value.contains('night') |
+                               tbl_ulysses.value.contains('morning'))
+
+print "Number of lines with 'morning', 'afternoon', 'night':"
+print tbl_lines.count()
+```
+
+```{bash echo=FALSE}
 # Execute python script
 /opt/spark-2.2.0-bin-hadoop2.7/bin/spark-submit \
-  /home/tim/e63-coursework/hw3/scripts/python/df_function_count.py
+  /home/tim/e63-coursework/hw3/scripts/p4_df_function_count.py
 ```
 
 # Problem 5 (15%)
-Create a standalone Python script that will count all words in file ulysses10.txt. You are expected to produce a single number. Do it using RDD API. If convenient, you are welcome to implement this problem in other languages: Scala, Java or R.
+Create a standalone Python script that will count all words in file ulysses10.txt. You are expected to produce a single number. Do it using RDD API.
 
-```{python}
+## Total word count (RDD)
+The below file shows the content of the *rdd_total_word_count.py* script.
+```{python eval=FALSE}
 # Import findspark
 import findspark
-findspark.init()
+findspark.init("/opt/spark-2.2.0-bin-hadoop2.7")
+from pyspark import SparkConf, SparkContext
 
-from pyspark import SparkContext, SparkConf
+# Configuration
+conf = SparkConf().setMaster("local") \
+                  .setAppName("p5_rdd_count")
 
-conf = SparkConf().setMaster("local").setAppName("MyApp")
+# Load Spark
 sc = SparkContext(conf = conf)
 
-lines = sc.textFile("file:///home/tim/e63-coursework/hw3/data/ulysses10.txt")
+# Load data
+rdd_lines = sc.textFile("file:///home/tim/e63-coursework/hw3/data/ulysses10.txt")
 
-counts = lines.flatMap(lambda x: x.split(' ')) \
-                  .map(lambda x: (x, 1)) \
-                  .reduceByKey(lambda x,y:x+y) \
-                  .map(lambda x : x[1]).sum()
+# Map and reduce data
+rdd_counts = rdd_lines.flatMap(lambda x: x.split(" ")) \
+                      .map(lambda x: (x, 1)) \
+                      .reduceByKey(lambda x, y : x + y) \
+                      .map(lambda x : x[1]).sum()
 
-print(counts)
-
+# Print
+print "Total word count:"
+print rdd_counts
+sc.stop()
 ```
 
+With the below bash command we can run the above python script:
+```{bash}
+# Execute python script
+/opt/spark-2.2.0-bin-hadoop2.7/bin/spark-submit \
+  /home/tim/e63-coursework/hw3/scripts/p5_rdd_word_count.py
+```
 
 # Problem 6 (15%)
-Create a standalone Python script that will count all words in file ulysses10.txt. You are expected to produce a single number. Do it using Dataset/DataFrame API. If convenient, you are welcome to implement this problem in other languages: Scala, Java or R.
+Create a standalone Python script that will count all words in file ulysses10.txt. You are expected to produce a single number. Do it using Dataset/DataFrame API.
 
-```{python}
-# Import findspark
+## i) Total word count (DF)
+We could simply use the *rdd* function and use the same building blocks as before. However, using the dataframe gives new ways of manipulating the data.
+
+```{python eval=FALSE}
+# Import libraries
 import findspark
-findspark.init()
-
-# Or the following command
 findspark.init("/opt/spark-2.2.0-bin-hadoop2.7")
-
-from pyspark import SparkContext, SparkConf
 from pyspark.sql import SparkSession
-from pyspark import SparkContext, SparkConf
+from pyspark.sql.functions import split   # Function to split data
+from pyspark.sql.functions import explode # Equivalent to flatMap
 
 # Create Session
-spark = SparkSession.builder.appName("PS6").master("local").getOrCreate()
+spark = SparkSession.builder.master("local").appName("p6_df_count").getOrCreate()
 
 # Read data
 df = spark.read.text("file:///home/tim/e63-coursework/hw3/data/ulysses10.txt")
 
-# Next split each of the line into words using split function. This will create a new DataFrame with words column, each words column would have array of words for that line.
-from pyspark.sql.functions import split
-wordsDF = df.select(split(df.value, " ").alias("words"))
+# First we're spliting each of the lines into words using the split function.
+# This will create a new dataframe with the words column, each words column
+# has an array of words for that line.
+words_df = df.select(split(df.value, " ").alias("words"))
 
-# Next use explode transformation to convert the words array into a dataframe with word column. This is equivalent of using flatMap() method on RDD 
-from pyspark.sql.functions import explode
-wordDF = wordsDF.select(explode(wordsDF.words).alias("word"))
+# Next we're using the explode function to convert the words array into
+# a dataframe with word column. This is equivalent of using flatMap() method on RDD 
+word_df = words_df.select(explode(words_df.words).alias("word"))
 
 print("Number of words: ")
-print(wordDF.count())
-
-# Get unique words
-wordCountDF = wordDF.groupBy("word").count()
-
-print("Number of unique words: ")
-print(wordCountDF.count())
+print(word_df.count())
 ```
 
-Of course, we didn't exclude any commas, points etc. as well as emply lines are also still present in the dataframe.
+```{bash}
+# Execute python script
+/opt/spark-2.2.0-bin-hadoop2.7/bin/spark-submit \
+  /home/tim/e63-coursework/hw3/scripts/p6_df_word_count.py
+```
 
-http://www.sparktutorials.net/Getting+Started+with+Apache+Spark+RDDs
-https://datamize.wordpress.com/2015/02/08/visualizing-basic-rdd-operations-through-wordcount-in-pyspark/
-http://www.mccarroll.net/blog/pyspark2/index.html
+## ii) Number of unique words
+Having done this we can easily also count the number of unique words with the following two lines. 
+```{python eval=FALSE}
+# Get unique words
+word_count_df = word_df.groupBy("word").count()
+
+print("Number of unique words: ")
+print(word_count_df.count())
+```
+
+```{bash echo=FALSE, message=FALSE}
+# Execute python script
+/opt/spark-2.2.0-bin-hadoop2.7/bin/spark-submit \
+  /home/tim/e63-coursework/hw3/scripts/p6_df_unique_count.py
+```
+
+Of course, we didn't exclude any commas, points etc. as well as empty lines are also still present in the dataframe.
+
+# Sources
+In order to solve some of the above problems I used the following source.
+
+Source: http://www.sparktutorials.net/Getting+Started+with+Apache+Spark+RDDs
+\ 
+Source: https://datamize.wordpress.com/2015/02/08/visualizing-basic-rdd-operations-through-wordcount-in-pyspark/ 
+\ 
+Source: http://www.mccarroll.net/blog/pyspark2/index.html 
+\ 
