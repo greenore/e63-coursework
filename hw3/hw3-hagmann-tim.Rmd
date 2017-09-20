@@ -4,14 +4,14 @@ title: |
 author: "Tim Hagmann"
 date: '`r format(Sys.Date(), "%B %d, %Y")`'
 output:
+  pdf_document:
+    toc: yes
   html_document:
     css: css/styles.css
     highlight: tango
     theme: flatly
     toc: yes
     toc_float: yes
-  pdf_document:
-    toc: yes
   word_document:
     toc: yes
 linkcolor: blue
@@ -126,7 +126,8 @@ The started instance has currently a *flexible* ip address. This means, that whe
 
 ```{bash}
 # Get instances id
-aws ec2 describe-instances --query 'Reservations[].Instances[].[InstanceId, State.Name]' --output text
+aws ec2 describe-instances --query \
+  'Reservations[].Instances[].[InstanceId, State.Name]' --output text
 ```
 
 ```{bash}
@@ -216,7 +217,7 @@ scp -i SSH/aws-instance.pem \
 
 **Note:** In this project all the files are transfer trough git over a github account. That means the above code is not actually executed.
 
-## Java, Python and Scala version
+## Java, Python, Scala and R
 Examine the version of Java, Python and Scala on your VM. If any of those versions is below requirements for Spark 2.2 install proper version. Set JAVA_HOME environmental variable. Set your PATH environmental variable properly, so that you can invoke: java, sbt and python commands from any directory on your system.
 
 #### Spark version check
@@ -336,7 +337,7 @@ knitr::include_graphics('img/terminal_pyspark.png')
 ```
 The image above shows, that pyspark does work.
 
-## Eliminate warning
+## Eliminate warnings
 Demonstrate that you can successfully open spark-shell and that you can eliminate most of WARNing messages.
 
 In order to eliminate the error messages in the spark-shell we're first creating the log4j.properties file from the template file and setting the log level to ERROR and log4j.rootCategory=ERROR.
@@ -372,7 +373,7 @@ We're going to use the standard python 2.7 interpreter to solve the above proble
 sudo -H pip install findspark 
 ```
 
-## i) Count lines (RDD)
+## i) Lambda function (RDD)
 Next we're using a lambda function to count the number of *night*, *morning* and *afternoon* occurrences in the text.
 ```{python eval=FALSE}
 # Import findspark
@@ -484,7 +485,7 @@ sc = SparkContext(conf = conf)
 rdd_lines = sc.textFile("file:///home/tim/e63-coursework/hw3/data/ulysses10.txt")
 
 # Map and reduce data
-rdd_counts = rdd_lines.flatMap(lambda x: x.split(" ")) \
+rdd_counts = rdd_lines.flatMap(lambda x: x.split(' ')) \
                       .map(lambda x: (x, 1)) \
                       .reduceByKey(lambda x, y : x + y) \
                       .map(lambda x : x[1]).sum()
@@ -501,6 +502,8 @@ With the below bash command we can run the above python script:
 /opt/spark-2.2.0-bin-hadoop2.7/bin/spark-submit \
   /home/tim/e63-coursework/hw3/scripts/p5_rdd_word_count.py
 ```
+
+It shows that we count 278'555 words. The code could be refined some more by putting all words into lower case and eliminating numbers and punctuation marks (See the reference links for some more). However, in order for the solution to be easily comparable I'm leaving it at the current state.
 
 # Problem 6 (15%)
 Create a standalone Python script that will count all words in file ulysses10.txt. You are expected to produce a single number. Do it using Dataset/DataFrame API.
@@ -557,14 +560,126 @@ print(word_count_df.count())
   /home/tim/e63-coursework/hw3/scripts/p6_df_unique_count.py
 ```
 
-Of course, we didn't exclude any commas, points etc. as well as empty lines are also still present in the dataframe.
+The results are the same as before, we're counting 278'555 words. As said before, we didn't exlude any commas, points etc.
 
-# Sources
+## iii) SparkR (optional)
+The SparkR packages allows accessing the dataframe api directly from R. In order to have an comparable example out of R we're replicating the above answer in R.
+
+#### Start session
+```{r message=FALSE}
+if (nchar(Sys.getenv("SPARK_HOME")) < 1) {
+  Sys.setenv(SPARK_HOME = "/opt/spark-2.2.0-bin-hadoop2.7/")
+}
+
+library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"),
+                                                       "R", "lib")))
+
+sparkR.session(master="local",
+                                sparkConfig=list(spark.driver.memory="2g",
+                                                 app_name = "p6_df_count"))
+```
+
+#### Get data
+```{r}
+# install.packages("magrittr")
+library(magrittr)
+
+df <- read.text("/home/tim/e63-coursework/hw3/data/ulysses10.txt")
+seperated <- selectExpr(df, "split(value, ' ') AS value")
+
+words <- select(seperated, explode(seperated$value)) %>% 
+  collect() %>%
+  extract2(1)
+
+length(words)
+```
+We can see that we count the same amount of words as with the python example. However, as mentioned before, the counted words are not properly cleaned. We have to remove all punctuations, turn all the words into lower case and remove empty lines and remove duplicates. That is what we're going to do next.
+
+#### Get data
+```{r}
+# install.packages("magrittr")
+library(magrittr)
+
+df <- read.text("/home/tim/e63-coursework/hw3/data/ulysses10.txt")
+df <- filter(df, "value != ''")
+df$value <- lower(df$value)
+df$value <- regexp_replace(df$value, pattern="[^\\w || \\s]", replacement = "")
+seperated <- selectExpr(df, "split(value, ' ') AS value")
+
+words <- select(seperated, explode(seperated$value)) %>% 
+  distinct() %>% 
+  collect() %>%
+  extract2(1)
+
+words <- words[words != ""]
+length(words)
+```
+
+As can be seen above, the amount of words has decreased to 29'979 unique words. Next we're going to explore the frequency of the words. For that we have to include all the words. 
+
+```{r}
+df <- filter(df, "value != ''")
+df$value <- lower(df$value)
+df$value <- regexp_replace(df$value, pattern="[^\\w || \\s]", replacement = "")
+seperated <- selectExpr(df, "split(value, ' ') AS value")
+
+words <- select(seperated, explode(seperated$value)) %>% 
+  collect() %>%
+  extract2(1)
+
+words <- words[words != ""]
+```
+
+Having a dataframe with unique words lets visualize those words.
+
+#### Plotting
+```{r}
+library(ggplot2)
+
+# Data manipulation
+df_words <- data.frame(table(words))
+df_words <- df_words[order(df_words$Freq, decreasing=TRUE), ]
+df_words$words <- factor(df_words$words,
+                         levels=df_words$words[
+                           order(df_words$Freq, decreasing=TRUE)])
+
+# Plotting
+ggplot(df_words[1:25, ], aes(words, Freq)) +
+  geom_bar(stat="identity") +
+  theme_minimal() +
+  ylab("Frequency") +
+  xlab("Words") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+The plot above shows, that the most used words are as expecet filler words. Lets go further and visualize all the words in a wordcloud.
+
+```{r echo=FALSE eval=FALSE}
+# install.packages("wordcloud2")
+library(wordcloud2)
+
+# Change the shape using your image
+wordcloud2(df_words, size = 1.5, color = "black", backgroundColor="white")
+```
+
+```{r}
+# install.packages("wordcloud")
+library(wordcloud)
+
+# Change the shape using your image
+set.seed(1234)
+wordcloud(words=df_words$words, freq=df_words$Freq, min.freq=1,
+          max.words=350, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+
+```
+
+# References
 In order to solve some of the above problems I used the following source.
 
-Source: http://www.sparktutorials.net/Getting+Started+with+Apache+Spark+RDDs
-\ 
-Source: https://datamize.wordpress.com/2015/02/08/visualizing-basic-rdd-operations-through-wordcount-in-pyspark/ 
-\ 
-Source: http://www.mccarroll.net/blog/pyspark2/index.html 
-\ 
+- Source: http://www.sparktutorials.net/Getting+Started+with+Apache+Spark+RDDs
+
+- Source: https://datamize.wordpress.com/2015/02/08/visualizing-basic-rdd-operations-through-wordcount-in-pyspark/ 
+
+- Source: http://www.mccarroll.net/blog/pyspark2/index.html 
