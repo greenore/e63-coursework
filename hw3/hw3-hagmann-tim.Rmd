@@ -608,8 +608,7 @@ if (nchar(Sys.getenv("SPARK_HOME")) < 1) {
 library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"),
                                                        "R", "lib")))
 
-sparkR.session(master="local", sparkConfig=list(spark.driver.memory="2g",
-                                                 app_name = "p6_df_count"))
+sparkR.session(master="local", sparkConfig=list(app_name = "p6_df_count"))
 ```
 
 #### Prepare data and count
