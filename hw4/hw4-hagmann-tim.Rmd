@@ -163,6 +163,17 @@ Implement problem 1 using DataFrame API.
 ### i) DF word number pairs
 Use Spark transformation and action functions present in *DF API* to transform those texts into DF-s that contain words and numbers of occurrence of those words in respective text. From King James Bible eliminate all verse numbers of the form: *03:019:024*. Eliminate from both RDDs so called *“stop words”*. List for us 30 most frequent words in each RDD (text).
 
+#### Define function
+```{python eval=FALSE}
+# Function
+from pyspark.sql.functions import regexp_replace, trim, col, lower
+
+def removePunctuation(column):
+  return trim(lower(regexp_replace(column,'([^A-Za-z0-9\s+])', ''))).alias('words')
+
+```
+
+
 #### Load data into RDD and cleanup
 ```{python eval=FALSE}
 # Import libraries
@@ -174,7 +185,7 @@ from pyspark.sql.functions import explode        # Equivalent to flatMap
 
 # Create Session
 spark = SparkSession.builder.master("local") \
-                    .appName("p2_df").getOrCreate()
+                    .appName("p3_df").getOrCreate()
 
 # Read data
 df_ulysses = spark.read.text("/home/tim/e63-coursework/hw4/data/4300-2.txt")
@@ -186,17 +197,62 @@ df_ulysses_cleaned = df_ulysses.select(split(df_ulysses.value,
                                        " ").alias("words"))
 df_ulysses_cleaned = df_ulysses_cleaned.select(explode(
                       df_ulysses_cleaned.words).alias("words"))
+df_ulysses_cleaned = df_ulysses_cleaned.select(removePunctuation(col('words')))
+df_ulysses_cleaned = df_ulysses_cleaned.filter('words != Null or words != ""')
 
-# Function
-from pyspark.sql.functions import regexp_replace, trim, col, lower
-def removePunctuation(column):
-  return trim(lower(regexp_replace(column,'([^A-Za-z0-9\s+])', ''))).alias('words')
+# Stopwords
+x = df_ulysses_cleaned.except(df_stopwords)
 
 
-df = df_ulysses_cleaned.select(removePunctuation(col('words')))
+x = spark.sql("SELECT words FROM df_ulysses_cleaned LEFT JOIN df_stopwords ON df_ulysses_cleaned.words = df_stopwords.words WHERE df_stopwords.value IS NULL")
+
+
+
+df = sqlContext.sql(s"select * from learning.people where interest in $interest")
+
+df_stopwords = df_stopwords.alias("words")
+
+
+
+df_stopwords.show()
+
+x = df_ulysses_cleaned.join(df_stopwords, ["words", "value"])
+
+
+
+df = df_ulysses_cleaned.join(df_stopwords, df_ulysses_cleaned.words == df_stopwords.value)
+
+df.show()
+help(df_ulysses_cleaned.join)
+df_ulysses_cleaned = df_stopwords.join(df_stopwords, df_ulysses_cleaned("words") === df_stopwords("value"))
+
+
+
+df1.join(df2, df1("user_id") === df2("valid_id"))
+
+df_ulysses_cleaned = df_ulysses.select(split(df_ulysses.value,
+                                       " ").alias("words"))
+df_ulysses_cleaned = df_ulysses_cleaned.select(explode(
+                      df_ulysses_cleaned.words).alias("words"))
+df_ulysses_cleaned = df_ulysses_cleaned.select(removePunctuation(col('words')))
+df_ulysses_cleaned = df_ulysses_cleaned.filter('words != Null or words != ""')
+
+
+
+df_word.count()
+df_word.show(100)
+
+x = df_word.collect()
 
 import numpy as np
-x = np.array(df.collect())
+x = np.array(x)
+print x
+
+x
+x[1:100, ]
+x[x == '03019024']
+np.where(x in '03:019:024', x)
+
 df.count()
 
 df.show()
@@ -207,34 +263,11 @@ df.show()
 x.show()
 
 help(df_ulysses_cleaned.words.regexp_replace)
-df_ulysses_cleaned.words.regexp_replace(df_ulysses_cleaned['words'],'03:019:024', '')
+df_ulysses_cleaned.words.regexp_replace(df_ulysses_cleaned['words'],, '')
 
 from pyspark.sql.functions import regexp_replace, col
 df = df_ulysses_cleaned.select(regexp_replace(col("words"), "03:019:024", "").alias("words"))
 df = df.select(regexp_replace(col("words"), "([^A-Za-z0-9\s+])", "").alias("words"))
-
-
-
-
-
-
-
-sentenceDF = sqlContext.createDataFrame([('Hi, you',),
-                               (' Look! No under_score!',),
-                               (' * Remove punctuation then spaces * ',)], 
-                               ['sentence'])
-  # display first original sentence
-sentenceDF.show(truncate=False)
- # then sentence with punctuation removed
-(sentenceDF
-   .select(removePunctuation(col('sentence')))
-   .show(truncate=False))
-
-
-
-
-
-
 
 
 
@@ -280,8 +313,6 @@ df_ulysses_cleaned = df_ulysses.select(split(df_ulysses.value,
 # Create one row per word
 df_word = df_words.select(explode(df_words.words).alias("words"))
 
-# Remove empy lines
-df_word = df_word.filter('words != Null or words != ""')
 
 
 # Cleanup function
