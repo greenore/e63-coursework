@@ -1,0 +1,5 @@
+SELECT count(*) FROM categories;
+SELECT count(*) FROM departments;
+SELECT count(*) FROM order_items;
+SELECT count(*) FROM orders;
+SELECT count(*) FROM products;

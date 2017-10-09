@@ -1,0 +1,10 @@
+jdbc:hive2://127.0.0.1:10000/default> select count(*) from
+categories;
+jdbc:hive2://127.0.0.1:10000/default> select count(*) from
+departments;
+jdbc:hive2://127.0.0.1:10000/default> select count(*) from
+order_items;
+jdbc:hive2://127.0.0.1:10000/default> select count(*) from
+orders;
+jdbc:hive2://127.0.0.1:10000/default> select count(*) from
+products;
