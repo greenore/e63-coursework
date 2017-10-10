@@ -1,0 +1,348 @@
+______________________________________________
+#00 
+configure your environment
+Get cloudera quickstart 5.12 VM (10 GB of ram, 4 processors).
+Add these vars to your ~/bash_profile:
+	export JAVA_HOME=/usr/java/jdk1.7.0_67-cloudera
+	export SPARK_HOME=/usr/lib/spark
+	export HADOOP_MAPRED_HOME=/usr/lib/hadoop-mapreduce
+	export KAFKA_HOME=/usr/lib/kafka
+	export PATH=$PATH:$HOME/bin:$JAVA_HOME/bin:$SPARK_HOME/bin:$KAFKA_HOME/bin
+source ~/.bash_profile
+for x in `cd /etc/init.d ; ls hadoop-*`; do sudo service $x status ; done
+
+#If not, run:
+sudo service hadoop-yarn-resourcemanager restart
+for x in `cd /etc/init.d ; ls hadoop-*`; do sudo service $x start ; done
+
+
+#check if hadoop serives are up; no need to do this b/c by default all services should be
+# running when you start the VM, but double-checking never hurts. That proxy services is 
+# not working is OK; no need to fix it for these homeworks.
+cd $SPARK_HOME/sbin
+sudo ./start-all.sh
+		
+http://localhost:18080/   #check master and worker are launched, also optional, double-checking again
+http://localhost:18081/
+
+#if they are not working, stop-all.sh; then try: sudo ./start-all.sh --host localhost[4]  
+#check if it works; if not stop again; run <start-master.sh> only.
+#Get into safari and download all of the code for week 5; save them into folder let's say 'hw5_data' and place it in
+#/home/cloudera or anywhere you like
+
+
+Note:
+If you have no errors running splitAndSend.original, just record that.
+ALso, you might want to change streaming frequency from whatever you have in the *.py code to something like 3 seconds when it makes sense.
+
+
+
+______________________________________________
+#1 
+network-counts.py
+Main function: ssc.socketTextStream() 
+
+nc -lk 9999     #in one window. In another, run the .py program.
+			#to doble-check everything works, aka text is available via socket, run, 
+			#in other window, <nc localhost 9999>. Change port to a different number if 9999 is taken 
+cd ~/hw5_data
+spark-submit --master local[4] network-count.py localhost 9999
+
+Ignore the SLF4J messages.
+They do not interfere with running our spark jobs. They basically tell that zookeeper and some other services are using spark or depend on spark or spark depends on them. Something like that.
+
+Type something in the terminal where you run nc -lk 9999; you should see results being computed in the window where network-count.py is running. 
+Exit when you're tired of playing with it and finally thirsty for running more scripts. :)
+
+
+
+
+
+
+______________________________________________
+#2 
+counts-buys.py
+Main function: ssc.textFileStream()
+
+
+Create 3 directories in hdfs: staging, splits, out/out1
+cd ~/hw5_data
+spark-submit --master local[4] count-buys.py
+	#in one window, in another:
+cd ~/hw5_data
+chmod +x splitAndSend.sh
+./splitAndSend.sh splits
+
+
+Notes: 
+Run the splitAndSend.sh program first (the reason is that you's like to you streaming in spark, thus you need to stream/send the data first),
+then 2-5 seconds later or so run count-buys.py.
+If you are re-running, make sure that you first clean the hdfs' input folder to which splitAndSend.sh sends the text chunks to.
+Check your input and output directories in count-buys.py and make sure they exist in hdfs.
+This Python program does not output any results in the terminal. 
+On my laptop  splitAndSend.sh exited on its own a minutes or two after I began running it. 
+Once it is done, you can Ctrl + C on count-buys.py.
+You do not have to wait for splitAndSend.sh to finish -- you can just go into hdfs' output directory and <cat> a few files that end in part-00000.
+Some of them are empty, so do a few tries.
+
+
+
+#If you need to re-run:
+Stop .sh and .py scripts, then:
+	hadoop fs -rm -r /staging/*     #optional; should be empty; sometimes it isn`t, so better ls first, or just run this line
+	hadoop fs -rm -r /splits/*
+	hadoop fs -rm -r /out/out1/*
+	hadoop fs -ls /staging
+	hadoop fs -ls /splits
+	hadoop fs -ls /out/out1
+
+
+
+
+
+
+______________________________________________
+#3 
+stateful-wordcount.py
+Main function: updateStateByKey() with tcp socket
+Some theory: A DStream combines new data arriving in mini-batches with the data from state persisted over time, 
+produces results, and updates the state.
+
+
+Create 1 more hdfs directory: checkpoint
+nc -lk 9999
+	#in one window, in other:
+spark-submit --master local[2] stateful_wordcount.py localhost 9999
+
+
+Notes:
+Type something (repeat that something periodically) in the terminal where you run nc -lk 9999; you should see results being computed in the window where stateful_wordcount.py is running. 
+
+
+
+
+
+______________________________________________
+#4 
+top-clients.py
+Main function: updateStateByKey() with ssc.textFileStream()
+Some theory: We have 2 DStreams-- buySellList and top5clList. union() combines them into 1 output
+
+Create 1 more hdfs directory: out/out2   (also needs checkpoint, but we've already created it above)
+hadoop fs -rm -r /splits/*
+spark-submit --master local[4] top-clients.py
+	#in one window, in another:
+./splitAndSend.sh splits
+
+
+You do not have to wait for splitAndSend.sh to finish -- you can just go into hdfs' output directory, in my case it is out/out2 and <cat> a few files that end in part-00000.
+Some of them are empty, so do a few tries.
+
+
+
+
+______________________________________________
+#5 
+windows-operations.py
+Main function: reduceByKeyAndWindow(); demonstrates working with windowed DStream 'stocksWindow'
+Program's goal: to find top 5 most-traded securities during the last hour. 
+Some theory: 'stocksWindow' accumulates pairs of (symbol, amount) over a 60*60 seconds window.
+Window requires 2 params being fed into it: window length and sliding interval. To create a window is to specify a window several times longer than our measurement interval and within it perform averaging or some other calculations.
+Ex: apply on pairs DStreams (aka 2 dStrams), each of which has form: (word, 1) over the last 30 seconds of data.
+	pairs.reduceByKeyAndWindow(lambda x, y: x + y, lambda x, y: x - y, 30, 10)
+							          \= x - y= reduce function; 30, 10= window parameters
+
+Create 1 more hdfs directory: out/out3   (also needs checkpoint)
+hadoop fs -rm -r /splits/*
+hadoop fs -rm -r /staging/*
+spark-submit --master local[4] windows-operations.py
+	#in one window, in another:
+./splitAndSend.sh splits
+
+
+Go into out3, ls one of the directories it creates and check its part-0000 file. Repeat on other directories too to see what they are producing. 
+
+
+
+
+_____________________________________________
+#6 
+stocksOrdered.py - see my folder
+The script is a variation of top-clients.py
+It demonstrates how to write in functions and returns results as rows.
+
+
+
+
+
+
+______________________________________________
+#7  
+out04_createAsHiveTable.py  - see my folder
+The script imports all data from #6 hdfs 'out4' directory as a Hive table
+			Hive should run automatically on login. Same with all Hadoop processes.
+			#If hive not running, start it.
+			for x in `cd /etc/init.d ; ls hive*` ; do sudo service $x start ; done
+spark-submit out4_createAsHiveTable.py
+hadoop fs -ls /user/hive/warehouse
+
+beeline
+!connect jdbc:hive2://localhost:10000
+select * from stocks_ordered order by dttime;
+
+
+#Assumes you have hive configured from the previous homework
+
+
+
+
+______________________________________________
+#8 Install Kafka:
+https://kafka.apache.org/downloads
+pick 0.10.2.1 release; Scala 2.10  - kafka_2.10-0.10.2.1.tgz
+cd Downloads; tar xvzf; rename to 'kafka' using mv
+mv kafka /usr/lib
+bash_profile:  :$KAFKA_HOME/bin
+mkdir -p kafkadir/logs
+	#make both directories
+more $KAFKA_HOME/config/zookeeper.properties
+nano $KAFKA_HOME/config/zookeeper.properties
+	#Change clientPort=2181 to this: clientPort=21812
+	change from default dataDir=/tmp/zookeeper to dataDir=/home/cloudera/kafkadir
+nano $KAFKA_HOME/config/server.properties
+	change log.dirs=/tmp/kafka-logs to log.dirs=/home/cloudera/kafkadir/logs
+	#Change zookeeper.connect=localhost:2181 to zookeeper.connect=localhost:21812
+source ~/.bash_profile
+#In one terminal:
+	cd $KAFKA_HOME/bin
+	sudo zookeeper-server-start.sh $KAFKA_HOME/config/zookeeper.properties
+
+
+#In other, not important, just checking:
+[cloudera@quickstart config]$ nc -vz localhost 21812
+		#check is port is working: 21812
+
+#In 3rd:
+	#cd $KAFKA_HOME/bin   #doesn`t work sometimes for some reason. Maybe should have installed as a root
+			 #i also installed earlier kafka from cloudera manager as a parcel. Don`t do that..
+	cd /usr/lib/kafka/bin
+	#sudo kafka-server-start.sh $KAFKA_HOME/config/server.properties
+	./kafka-server-start.sh /usr/lib/kafka/config/server.properties
+		#i wonder is permissions should be changed on /user/cloudera/kafkadir
+	terminal windows/terminal/set title/Kafka
+ls -la /home/cloudera/kafkadir/logs
+
+
+$KAFKA_HOME/bin/kafka-topics.sh --list --zookeeper localhost:21812
+	#Check if there are any topics aready running. Currently, should return none.
+$KAFKA_HOME/bin/kafka-topics.sh --create --zookeeper localhost:21812 --replication-factor 1 --partitions 4 --topic lenaTopic1
+	#create new topic
+$KAFKA_HOME/bin/kafka-topics.sh --list --zookeeper localhost:21812
+$KAFKA_HOME/bin/kafka-topics.sh --describe --zookeeper localhost:21812
+
+
+kafka producer terminal:
+	cd /usr/lib/kafka/bin
+	./kafka-console-producer.sh --broker-list localhost:9092 --topic lenaTopic1
+
+kafka consumer terminal:
+	cd /usr/lib/kafka/bin
+	source ~/.bash_profile
+	kafka-console-consumer.sh --zookeeper localhost:21812 --topic lenaTopic1
+
+$KAFKA_HOME/bin/kafka-topics.sh --describe --zookeeper localhost:21812
+ls -la ~/kafkadir/logs
+
+
+Note:
+Always start Zookeeper 1st, Kafka - 2nd.
+Always stop Kafka server first, Zookeeper- 2nd.
+
+
+
+
+
+
+
+______________________________________________
+#9
+kafka_orders_producer.py
+kafka_orders_consumer.py - see my folder for both
+Main function in the producer: KafkaUtils.createDirectStream() 
+
+
+We are using Kafka instead of splitAndSend.sh to send chunks of orders.txt to find stocks with the highest traded volume. This program is similar to windows.operations.py
+
+install Python Kafka libs to create Kafka producers and consumers:
+	sudo rpm -ivh http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+	sudo yum install -y python-pip
+	pip -V
+	pip list
+	sudo pip install --upgrade pip
+	sudo pip install kafka-python
+write 2 programs:
+	(1) kafka_orders_producer.py 
+		it is a Kafka producer program that sends chunks of 1000s orders/lines at a time to topic 'lenaTopic1'
+	(2) kafka_orders_consumer.py
+		it is a Kafka consumer scripts that receives dStreams from Kakfa topic 
+		(aka 'lenaTopic1' with 4 partitions),
+		delivers them to Spark Streaming engine,			
+		processes regular dstreams with 1 sec frequency,
+		and finally creates Window dstreams with window duration and sliding duration.
+
+run them in separate terminals
+-in one terminal:
+	spark-submit --master local[4] kafka_orders_producer.py 
+-in the other:
+	not sure here; visiting friends today so will test it later.
+	i think i need a jar to run it. A simple <spark-submit kafka_orders_consumer.py> dosn`t work.
+
+
+However, we do know that Kafka consumer and producer are working well because when one types anything in the kafka producer window,
+it appears in the kafka producer window right away. Thus all is configured well. Maybe something is off codewise in my kafka_orders_consumer.py or I am not running it correctly.  
+
+
+
+
+
+
+______________________________________________
+#10 Install PyCharm:
+Download from jetbrains official site; check unable to lauch from the terminal when prompted; unzip
+
+Launch pyCharm:
+	cd ~/Downloads/pycharm-community-2017.2.3/bin
+	./pycharm.sh
+	#or: sh pycharm.sh &
+
+
+File/new project/name "scripts"
+Under scripts/scripts, RC/ New/python project
+	Add pyspark and py4j drivers to project structure:
+	File/Settings/Project 'scripts'/project structure/click on 
+		"Add content root"/add/find and add the 
+			/usr/lib/spark/python/lib/py4j-0.9-src.zip 
+		and then do the same for /usr/lib/spark/python/lib/py4j-0.9-scr.zip
+
+
+Import existing folder/files to the project:
+File/Settings/Project 'scripts'/project structure/"Add content root"/add "hw5_data" folder.
+Your project(s) are saved in /home/cloudera/PycharmProjects/projectName.
+
+
+
+
+
+
+
+
+
+_____________________________________________
+Misc:
+
+-Find the data you've deleted by mistake from the hdfs:
+	hdfs dfs -lsr /user/hdfs/.Trash/ 
+-Recover deleted user:
+	sudo -u hdfs hadoop fs -mkdir /user/spark
+	sudo -u hdfs hadoop fs -chown -R spark:spark /user/spark
+	sudo -u hdfs hadoop fs -chmod 1777 /user/spark
