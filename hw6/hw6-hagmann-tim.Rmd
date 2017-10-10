@@ -32,20 +32,38 @@ knitr::opts_chunk$set(warning=FALSE, message=FALSE,
                       fig.align='center')
 ```
 
-## Setup
-```{bash eval=FALSE}
-sudo vi /etc/spark/conf/log4j.properties
-:g /WARN/s//ERROR/g
-
-# Replace INFO, WARN with ERROR.
-:g /WARN/s//ERROR/g
-:g /INFO/s//ERROR/g
-:wq
-```
-
-
 ## Problem 1 (20%)
 Lecture notes contain script *network-count.py* in both Spark Streaming APIand Spark Structured Streaming API. Use Linux *nc (NetCat)* utility to demonstrate that scripts work. Run both scripts on your own VM with Spark 2.2 installation. Cloudera VM with Spark 1.6 does not have Spark Structured Streaming API.
+
+```{r}
+"/home/tim/e63-coursework/hw6/scripts/network-count.py"
+```
+
+```{bash eval=FALSE}
+python /home/tim/e63-coursework/hw6/scripts/network-count.py localhost 9999
+```
+
+```text
+Usage: network_wordcount.py <hostname> <port>
+```
+
+```{bash eval=FALSE}
+
+nc -lk 9999 
+
+#in one window. In another, run the .py program.
+#to doble-check everything works, aka text is available via socket, run, 
+#in other window, <nc localhost 9999>. Change port to a different number if 9999 is taken 
+cd ~/hw5_data
+spark-submit --master local[4] network-count.py localhost 9999
+
+Ignore the SLF4J messages.
+They do not interfere with running our spark jobs. They basically tell that zookeeper and some other services are using spark or depend on spark or spark depends on them. Something like that.
+
+Type something in the terminal where you run nc -lk 9999; you should see results being computed in the window where network-count.py is running. 
+Exit when you're tired of playing with it and finally thirsty for running more scripts. :)
+```
+
 
 ## Problem 2 (30%)
 Expand provide *orders.tar.gz* file. Also, download shell scrips *splitAndSend.original.sh* and *splitAndSend.sh* and the Python script *count-buys.py*. First run *splitAndSend.original.sh* and *count-buys.py*. Record the failure mode of *count-buys.py*. Simply read the error message produced and tell us what is happening. Then run script *splitAndSend.sh* and Python program *count-buys.py* and tell us what the results are. In both cases show use contents of your HDFS directories input, output and staging. The second script *splitAndSend.sh* is supposed to reduce or eliminate the race condition.  You might want to rename HDFS directory output from the first run in order to preserve it’s content. In both cases, show the partial contents of your HDFS directories *input*, *output* and *staging*. In the second run, locate an output file named *part-00000* that is not empty and show its content to us.  Run these experiments on Cloudera VM. You need HDFS for these programs to run.
