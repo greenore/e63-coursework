@@ -164,8 +164,6 @@ sudo adduser tim sudo
 sudo mkdir /home/tim/.ssh
 sudo cp /home/ubuntu/.ssh/authorized_keys \
     /home/tim/.ssh/authorized_keys
-sudo cp /home/ubuntu/.ssh/authorized_keys \
-    /home/tim/.ssh/authorized_keys
 sudo chown tim -R /home/tim/.ssh
 sudo chmod 700 /home/tim/.ssh
 sudo chmod 600 /home/tim/.ssh/authorized_keys

@@ -2,7 +2,7 @@ from __future__ import print_function
 
 import sys
 import findspark
-findspark.init()
+findspark.init("/home/tim/spark")
 
 from pyspark import SparkContext
 from pyspark.streaming import StreamingContext
