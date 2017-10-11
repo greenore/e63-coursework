@@ -1,3 +1,5 @@
+NH223-NKH43-68V94-002KK-281P6
+
 ______________________________________________
 #00 
 configure your environment
@@ -8,6 +10,10 @@ Add these vars to your ~/bash_profile:
 	export HADOOP_MAPRED_HOME=/usr/lib/hadoop-mapreduce
 	export KAFKA_HOME=/usr/lib/kafka
 	export PATH=$PATH:$HOME/bin:$JAVA_HOME/bin:$SPARK_HOME/bin:$KAFKA_HOME/bin
+
+/opt/spark-2.2.0-bin-hadoop2.7/
+
+
 source ~/.bash_profile
 for x in `cd /etc/init.d ; ls hadoop-*`; do sudo service $x status ; done
 
@@ -328,11 +334,6 @@ Under scripts/scripts, RC/ New/python project
 Import existing folder/files to the project:
 File/Settings/Project 'scripts'/project structure/"Add content root"/add "hw5_data" folder.
 Your project(s) are saved in /home/cloudera/PycharmProjects/projectName.
-
-
-
-
-
 
 
 
