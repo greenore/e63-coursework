@@ -1,25 +1,48 @@
 NH223-NKH43-68V94-002KK-281P6
 
+
 ______________________________________________
 #00 
 configure your environment
 Get cloudera quickstart 5.12 VM (10 GB of ram, 4 processors).
-Add these vars to your ~/bash_profile:
-	export JAVA_HOME=/usr/java/jdk1.7.0_67-cloudera
-	export SPARK_HOME=/usr/lib/spark
-	export HADOOP_MAPRED_HOME=/usr/lib/hadoop-mapreduce
-	export KAFKA_HOME=/usr/lib/kafka
-	export PATH=$PATH:$HOME/bin:$JAVA_HOME/bin:$SPARK_HOME/bin:$KAFKA_HOME/bin
 
-/opt/spark-2.2.0-bin-hadoop2.7/
+su cloudera
+cd ~
+vi .bash_profile
 
-
+export JAVA_HOME=/usr/java/jdk1.7.0_67-cloudera
+export SPARK_HOME=/usr/lib/spark
+export HADOOP_MAPRED_HOME=/usr/lib/hadoop-mapreduce
+export KAFKA_HOME=/usr/lib/kafka
+export PATH=$PATH:$HOME/bin:$JAVA_HOME/bin:$SPARK_HOME/bin:$KAFKA_HOME/bin
 source ~/.bash_profile
+
+git clone https://github.com/greenore/e63.git
+
+# Check service
 for x in `cd /etc/init.d ; ls hadoop-*`; do sudo service $x status ; done
 
 #If not, run:
 sudo service hadoop-yarn-resourcemanager restart
-for x in `cd /etc/init.d ; ls hadoop-*`; do sudo service $x start ; done
+
+### SSH stuff
+ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa
+cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+chmod 0600 ~/.ssh/authorized_keys
+eval `ssh-agent -s`
+ssh-add
+
+# Root
+exit
+mkdir /root/.ssh
+cp /home/cloudera/.ssh/id_rsa /root/.ssh/id_rsa
+cp /home/cloudera/.ssh/id_rsa.pub /root/.ssh/id_rsa.pub
+cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+chmod 0600 ~/.ssh/authorized_keys
+eval `ssh-agent -s`
+ssh-add
+
+su cloudera
 
 
 #check if hadoop serives are up; no need to do this b/c by default all services should be
@@ -42,7 +65,7 @@ If you have no errors running splitAndSend.original, just record that.
 ALso, you might want to change streaming frequency from whatever you have in the *.py code to something like 3 seconds when it makes sense.
 
 
-
+docker exec -u 0 -it 44be71fa1de8 bash
 ______________________________________________
 #1 
 network-counts.py

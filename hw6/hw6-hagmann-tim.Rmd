@@ -70,8 +70,206 @@ Time: 2017-10-11 10:30:48
 As can be seen above, the *network-count.py* script appears to be working.
 
 ## Problem 2 (30%)
-Expand provide *orders.tar.gz* file. Also, download shell scrips *splitAndSend.original.sh* and *splitAndSend.sh* and the Python script *count-buys.py*. First run *splitAndSend.original.sh* and *count-buys.py*. Record the failure mode of *count-buys.py*. Simply read the error message produced and tell us what is happening. Then run script *splitAndSend.sh* and Python program *count-buys.py* and tell us what the results are. In both cases show use contents of your HDFS directories input, output and staging. The second script *splitAndSend.sh* is supposed to reduce or eliminate the race condition.  You might want to rename HDFS directory output from the first run in order to preserve it’s content. In both cases, show the partial contents of your HDFS directories *input*, *output* and *staging*. In the second run, locate an output file named *part-00000* that is not empty and show its content to us.  Run these experiments on Cloudera VM. You need HDFS for these programs to run.
+Expand provide *orders.tar.gz* file. Also, download shell scrips *splitAndSend.original.sh* and *splitAndSend.sh* and the Python script *count-buys.py*. 
 
+
+First run *splitAndSend.original.sh* and *count-buys.py*. Record the failure mode of *count-buys.py*. Simply read the error message produced and tell us what is happening.
+
+
+```{bash eval=FALSE}
+for x in `cd /etc/init.d ; ls hadoop-*`; do sudo service $x status ; done
+#for x in `cd /etc/init.d ; ls hadoop-*`; do sudo service $x start ; done
+
+```
+
+```text
+[cloudera@quickstart e63]$ for x in `cd /etc/init.d ; ls hadoop-*`; do sudo service $x status ; done
+Hadoop datanode is running                                 [  OK  ]
+Hadoop journalnode is running                              [  OK  ]
+Hadoop namenode is running                                 [  OK  ]
+Hadoop secondarynamenode is running                        [  OK  ]
+Hadoop httpfs is running                                   [  OK  ]
+Hadoop historyserver is running                            [  OK  ]
+Hadoop nodemanager is running                              [  OK  ]
+Hadoop proxyserver is dead and pid file exists             [FAILED]
+Hadoop resourcemanager is running                          [  OK  ]
+```
+
+
+```{bash eval=FALSE}
+su cloudera
+cd ~
+vi .bash_profile
+
+export JAVA_HOME=/usr/java/jdk1.7.0_67-cloudera
+export SPARK_HOME=/usr/lib/spark
+export HADOOP_MAPRED_HOME=/usr/lib/hadoop-mapreduce
+export KAFKA_HOME=/usr/lib/kafka
+export PATH=$PATH:$HOME/bin:$JAVA_HOME/bin:$SPARK_HOME/bin:$KAFKA_HOME/bin
+
+source ~/.bash_profile
+
+sudo yum install -y nano
+
+git clone https://github.com/greenore/e63.git
+cd e63
+
+# Untar
+tar xvzf orders.tar.gz 
+
+# Create 3 directories in hdfs: staging, splits, out/out1
+hadoop fs -mkdir -p staging
+hadoop fs -mkdir -p splits
+hadoop fs -mkdir -p out/out1
+
+# Empty folders
+hadoop fs -rm -r staging/*
+hadoop fs -rm -r splits/*
+hadoop fs -rm -r out/out1/*
+
+# Run scripts
+chmod +x splitAndSend.original.sh
+./splitAndSend.original.sh splits
+```
+
+```{bash eval=FALSE}
+docker exec -it --user root b976b788eac4  bash
+su cloudera
+cd ~
+
+sudo yum install python-pip
+sudo pip install findspark
+spark-submit --master local[4] /home/cloudera/e63/count-buys.py
+```
+
+```text
+SLF4J: Class path contains multiple SLF4J bindings.
+SLF4J: Found binding in [jar:file:/usr/lib/zookeeper/lib/slf4j-log4j12-1.7.5.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: Found binding in [jar:file:/usr/jars/slf4j-log4j12-1.7.5.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+SLF4J: Actual binding is of type [org.slf4j.impl.Log4jLoggerFactory]
+17/10/12 12:37:01 INFO spark.SparkContext: Running Spark version 1.6.0
+17/10/12 12:37:02 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+17/10/12 12:37:02 INFO spark.SecurityManager: Changing view acls to: cloudera
+17/10/12 12:37:02 INFO spark.SecurityManager: Changing modify acls to: cloudera
+17/10/12 12:37:02 INFO spark.SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: Set(cloudera); users with modify permissions: Set(cloudera)
+17/10/12 12:37:03 INFO util.Utils: Successfully started service 'sparkDriver' on port 45365.
+17/10/12 12:37:03 INFO slf4j.Slf4jLogger: Slf4jLogger started
+17/10/12 12:37:03 INFO Remoting: Starting remoting
+17/10/12 12:37:04 INFO Remoting: Remoting started; listening on addresses :[akka.tcp://sparkDriverActorSystem@172.17.0.2:37413]
+17/10/12 12:37:04 INFO Remoting: Remoting now listens on addresses: [akka.tcp://sparkDriverActorSystem@172.17.0.2:37413]
+17/10/12 12:37:04 INFO util.Utils: Successfully started service 'sparkDriverActorSystem' on port 37413.
+17/10/12 12:37:04 INFO spark.SparkEnv: Registering MapOutputTracker
+17/10/12 12:37:04 INFO spark.SparkEnv: Registering BlockManagerMaster
+17/10/12 12:37:04 INFO storage.DiskBlockManager: Created local directory at /tmp/blockmgr-36d03cbc-76ad-44d2-b935-31e4561a3f66
+17/10/12 12:37:04 INFO storage.MemoryStore: MemoryStore started with capacity 530.3 MB
+17/10/12 12:37:06 INFO spark.SparkEnv: Registering OutputCommitCoordinator
+17/10/12 12:37:11 INFO server.Server: jetty-8.y.z-SNAPSHOT
+17/10/12 12:37:13 INFO server.AbstractConnector: Started SelectChannelConnector@0.0.0.0:4040
+17/10/12 12:37:13 INFO util.Utils: Successfully started service 'SparkUI' on port 4040.
+Killed
+```
+
+```{bash eval=FALSE}
+# Show content
+hadoop fs -ls staging
+hadoop fs -ls splits
+hadoop fs -ls out/out1
+```
+```text
+[cloudera@quickstart sbin]$ hadoop fs -ls splits
+Found 50 items
+-rw-r--r--   1 cloudera cloudera     437626 2017-10-12 12:50 splits/chunkaa
+-rw-r--r--   1 cloudera cloudera     448647 2017-10-12 12:50 splits/chunkab
+-rw-r--r--   1 cloudera cloudera     448605 2017-10-12 12:50 splits/chunkac
+-rw-r--r--   1 cloudera cloudera     448794 2017-10-12 12:51 splits/chunkad
+-rw-r--r--   1 cloudera cloudera     448624 2017-10-12 12:51 splits/chunkae
+-rw-r--r--   1 cloudera cloudera     448553 2017-10-12 12:51 splits/chunkaf
+-rw-r--r--   1 cloudera cloudera     448436 2017-10-12 12:51 splits/chunkag
+-rw-r--r--   1 cloudera cloudera     448679 2017-10-12 12:51 splits/chunkah
+-rw-r--r--   1 cloudera cloudera     448424 2017-10-12 12:51 splits/chunkai
+-rw-r--r--   1 cloudera cloudera     448564 2017-10-12 12:51 splits/chunkaj
+-rw-r--r--   1 cloudera cloudera     458595 2017-10-12 12:51 splits/chunkak
+-rw-r--r--   1 cloudera cloudera     458580 2017-10-12 12:52 splits/chunkal
+-rw-r--r--   1 cloudera cloudera     458605 2017-10-12 12:52 splits/chunkam
+-rw-r--r--   1 cloudera cloudera     458630 2017-10-12 12:52 splits/chunkan
+-rw-r--r--   1 cloudera cloudera     458663 2017-10-12 12:52 splits/chunkao
+-rw-r--r--   1 cloudera cloudera     458540 2017-10-12 12:52 splits/chunkap
+-rw-r--r--   1 cloudera cloudera     458533 2017-10-12 12:52 splits/chunkaq
+-rw-r--r--   1 cloudera cloudera     458403 2017-10-12 12:52 splits/chunkar
+-rw-r--r--   1 cloudera cloudera     458470 2017-10-12 12:53 splits/chunkas
+-rw-r--r--   1 cloudera cloudera     458584 2017-10-12 12:53 splits/chunkat
+-rw-r--r--   1 cloudera cloudera     458333 2017-10-12 12:53 splits/chunkau
+-rw-r--r--   1 cloudera cloudera     458600 2017-10-12 12:53 splits/chunkav
+-rw-r--r--   1 cloudera cloudera     458732 2017-10-12 12:53 splits/chunkaw
+-rw-r--r--   1 cloudera cloudera     458559 2017-10-12 12:54 splits/chunkax
+-rw-r--r--   1 cloudera cloudera     458654 2017-10-12 12:54 splits/chunkay
+-rw-r--r--   1 cloudera cloudera     458533 2017-10-12 12:54 splits/chunkaz
+-rw-r--r--   1 cloudera cloudera     458535 2017-10-12 12:54 splits/chunkba
+-rw-r--r--   1 cloudera cloudera     458700 2017-10-12 12:54 splits/chunkbb
+-rw-r--r--   1 cloudera cloudera     458509 2017-10-12 12:54 splits/chunkbc
+-rw-r--r--   1 cloudera cloudera     458488 2017-10-12 12:54 splits/chunkbd
+-rw-r--r--   1 cloudera cloudera     458527 2017-10-12 12:55 splits/chunkbe
+-rw-r--r--   1 cloudera cloudera     458662 2017-10-12 12:55 splits/chunkbf
+-rw-r--r--   1 cloudera cloudera     458618 2017-10-12 12:55 splits/chunkbg
+-rw-r--r--   1 cloudera cloudera     458673 2017-10-12 12:55 splits/chunkbh
+-rw-r--r--   1 cloudera cloudera     458431 2017-10-12 12:55 splits/chunkbi
+-rw-r--r--   1 cloudera cloudera     458464 2017-10-12 12:55 splits/chunkbj
+-rw-r--r--   1 cloudera cloudera     458450 2017-10-12 12:55 splits/chunkbk
+-rw-r--r--   1 cloudera cloudera     458536 2017-10-12 12:56 splits/chunkbl
+-rw-r--r--   1 cloudera cloudera     458412 2017-10-12 12:56 splits/chunkbm
+-rw-r--r--   1 cloudera cloudera     458712 2017-10-12 12:56 splits/chunkbn
+-rw-r--r--   1 cloudera cloudera     458586 2017-10-12 12:56 splits/chunkbo
+-rw-r--r--   1 cloudera cloudera     458501 2017-10-12 12:56 splits/chunkbp
+-rw-r--r--   1 cloudera cloudera     458569 2017-10-12 12:56 splits/chunkbq
+-rw-r--r--   1 cloudera cloudera     458459 2017-10-12 12:57 splits/chunkbr
+-rw-r--r--   1 cloudera cloudera     458737 2017-10-12 12:57 splits/chunkbs
+-rw-r--r--   1 cloudera cloudera     458556 2017-10-12 12:57 splits/chunkbt
+-rw-r--r--   1 cloudera cloudera     458358 2017-10-12 12:57 splits/chunkbu
+-rw-r--r--   1 cloudera cloudera     458570 2017-10-12 12:57 splits/chunkbv
+-rw-r--r--   1 cloudera cloudera     458639 2017-10-12 12:57 splits/chunkbw
+-rw-r--r--   1 cloudera cloudera     458503 2017-10-12 12:57 splits/chunkbx
+```
+
+Then run script *splitAndSend.sh* and Python program *count-buys.py* and tell us what the results are. In both cases show use contents of your HDFS directories input, output and staging. The second script *splitAndSend.sh* is supposed to reduce or eliminate the race condition.  You might want to rename HDFS directory output from the first run in order to preserve its content.
+
+```{bash eval=FALSE}
+# Run scripts
+chmod +x splitAndSend.sh
+# Empty folders
+hadoop fs -rm -r staging/*
+hadoop fs -rm -r splits/*
+hadoop fs -rm -r out/out1/*
+./splitAndSend.sh splits
+```
+
+```{bash eval=FALSE}
+spark-submit --master local[4] /home/cloudera/e63/count-buys.py
+
+```
+
+
+In both cases, show the partial contents of your HDFS directories *input*, *output* and *staging*. In the second run, locate an output file named *part-00000* that is not empty and show its content to us.  Run these experiments on Cloudera VM. You need HDFS for these programs to run.
+
+
+```{bash eval=FALSE}
+# Show content
+hadoop fs -ls staging
+hadoop fs -ls splits
+hadoop fs -ls out/out1
+
+
+# Create 3 directories in hdfs: staging, splits, out/out1
+hadoop fs -mkdir -p input
+hadoop fs -mkdir -p output
+
+
+hadoop fs -ls input
+hadoop fs -ls splits
+hadoop fs -ls output
+
+
+```
 ## Problem 3 (10%)
 In the second run of the previous problem you will notice that many of part-00000 files in your output directory are empty. Could you explain why.
 (10%)
