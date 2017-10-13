@@ -48,28 +48,154 @@ localhost: starting org.apache.spark.deploy.worker.Worker, logging to /home/tim/
 
 Next we're running the *network-count.py* in one window and the *nc -lk 9999* and typing *abc* in another window gives the following result:
 ```{bash eval=FALSE}
-spark-submit --master local[4] /home/tim/e63-coursework/hw6/scripts/network-count.py localhost 9999
 nc -lk 9999 
+spark-submit --master local[4] /home/tim/e63-coursework/hw6/scripts/network-count.py localhost 9999
 ```
 
+#### Netcat server
+```text
+tim@ip-172-31-24-35:~/e63-coursework/hw6/data$ nc -lk 9999
+hello world
+
+this is a test
+talking to the world
+```
+
+#### Network count
 ```text
 -------------------------------------------
-Time: 2017-10-11 10:30:42
+Time: 2017-10-13 14:46:45
 -------------------------------------------
-(u'abc', 3)
+(u'world', 1)
+(u'hello', 1)
 
 -------------------------------------------
-Time: 2017-10-11 10:30:45
+Time: 2017-10-13 14:46:48
 -------------------------------------------
-(u'abc', 1)
 
 -------------------------------------------
+Time: 2017-10-13 14:46:51
 -------------------------------------------
-Time: 2017-10-11 10:30:48
--------------------------------------------
+(u'a', 2)
+(u'this', 1)
+(u'test', 1)
+(u'to', 1)
+(u'world', 2)
+(u'talking', 1)
+(u'the', 2)
+(u'is', 1)
+...
+
+-------
 ```
 
-As can be seen above, the *network-count.py* script appears to be working.
+As can be seen above, the *network-count.py* script appears to be working. Next we're moving to the *network-count-structured.py*.
+
+```{bash eval=FALSE}
+nc -lk 9999 
+spark-submit --master local[4] /home/tim/e63-coursework/hw6/scripts/network-count-structured.py localhost 9999
+```
+
+
+#### Netcat server
+```text
+tim@ip-172-31-24-35:~/e63-coursework/hw6/data$ nc -lk 9999
+hello world
+
+this is a test
+talking to the world
+```
+
+#### Network count structured
+```text
+tim@ip-172-31-24-35:~/e63-coursework$ spark-submit --master local[4] /home/tim/e63-coursework/hw6/script 
+s/network-count-structured.py localhost 9999
+-------------------------------------------
+Batch: 0
+-------------------------------------------
+
+[Stage 1:====>                                                   (15 + 4) / 200]
+[Stage 1:======>                                                 (22 + 5) / 200]
+[Stage 1:========>                                               (30 + 4) / 200]
+[Stage 1:===========>                                            (40 + 4) / 200]
+[Stage 1:==============>                                         (50 + 4) / 200]
+[Stage 1:=================>                                      (62 + 4) / 200]
+[Stage 1:====================>                                   (74 + 4) / 200]
+[Stage 1:=======================>                                (84 + 4) / 200]
+[Stage 1:===========================>                            (97 + 4) / 200]
+[Stage 1:==============================>                        (112 + 4) / 200]
+[Stage 1:=================================>                     (123 + 4) / 200]
+[Stage 1:=====================================>                 (137 + 4) / 200]
+[Stage 1:=========================================>             (151 + 4) / 200]
+[Stage 1:=============================================>         (164 + 4) / 200]
+[Stage 1:================================================>      (178 + 4) / 200]
+[Stage 1:====================================================>  (191 + 4) / 200]
+                                                                                
++-----+-----+
+| word|count|
++-----+-----+
+|hello|    1|
+|world|    1|
++-----+-----+
+
+-------------------------------------------
+Batch: 1
+-------------------------------------------
+
+[Stage 5:===========>                                            (41 + 4) / 200]
+[Stage 5:===============>                                        (54 + 4) / 200]
+[Stage 5:===================>                                    (70 + 4) / 200]
+[Stage 5:========================>                               (86 + 4) / 200]
+[Stage 5:============================>                          (102 + 4) / 200]
+[Stage 5:================================>                      (117 + 4) / 200]
+[Stage 5:====================================>                  (133 + 4) / 200]
+[Stage 5:=======================================>               (145 + 4) / 200]
+[Stage 5:============================================>          (161 + 4) / 200]
+[Stage 5:================================================>      (176 + 4) / 200]
+[Stage 5:===================================================>   (189 + 4) / 200]
+                                                                                
++-----+-----+
+| word|count|
++-----+-----+
+|hello|    1|
+|   is|    1|
+|world|    1|
+|    a|    1|
+| this|    1|
+| test|    1|
++-----+-----+
+
+-------------------------------------------
+Batch: 2
+-------------------------------------------
+
+[Stage 9:============>                                           (46 + 4) / 200]
+[Stage 9:=================>                                      (62 + 4) / 200]
+[Stage 9:======================>                                 (79 + 4) / 200]
+[Stage 9:==========================>                             (94 + 4) / 200]
+[Stage 9:=============================>                         (107 + 4) / 200]
+[Stage 9:=================================>                     (120 + 4) / 200]
+[Stage 9:=====================================>                 (138 + 4) / 200]
+[Stage 9:==========================================>            (153 + 4) / 200]
+[Stage 9:==============================================>        (170 + 4) / 200]
+[Stage 9:===================================================>   (186 + 4) / 200]
+                                                                                
++-------+-----+
+|   word|count|
++-------+-----+
+|  hello|    1|
+|talking|    1|
+|     is|    1|
+|    the|    1|
+|  world|    2|
+|      a|    1|
+|   this|    1|
+|   test|    1|
+|     to|    1|
++-------+-----+
+```
+
+The *network-count-structured.py* is also working. 
 
 ## Problem 2 (30%)
 Run the following experiments on Cloudera VM. You need HDFS for these programs to run.
@@ -415,6 +541,7 @@ mkdir -p /home/tim/e63-coursework/hw6/data/staging
 rm -r /home/tim/e63-coursework/hw6/data/staging/*
 rm -r /home/tim/e63-coursework/hw6/data/input/*
 rm -r /home/tim/e63-coursework/hw6/data/output/*
+rm /home/tim/chunk*
 
 bash /home/tim/e63-coursework/hw6/scripts/splitAndSend2.sh 
 ```
@@ -485,6 +612,7 @@ an apple a day, keeps the doctor away
 between you and me, britney is beautiful
 ```
 
+#### Stateful wordcount
 ```text
 -------------------------------------------
 Time: 2017-10-13 16:01:48
