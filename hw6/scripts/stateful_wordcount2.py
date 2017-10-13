@@ -32,6 +32,7 @@ if __name__ == "__main__":
 
     lines = ssc.socketTextStream(sys.argv[1], int(sys.argv[2]))
     running_counts = lines.flatMap(lambda line: line.split(" "))\
+                          .filter(lambda x: x.startswith("a") or x.startswith("b"))\
                           .map(lambda word: (word, 1))\
                           .updateStateByKey(updateFunc)
 						 #.updateStateByKey(updateFunc,initialStateRDD)

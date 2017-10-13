@@ -414,16 +414,19 @@ mkdir -p /home/tim/e63-coursework/hw6/data/staging
 ```{bash eval=FALSE}
 rm -r /home/tim/e63-coursework/hw6/data/staging/*
 rm -r /home/tim/e63-coursework/hw6/data/input/*
+rm -r /home/tim/e63-coursework/hw6/data/output/*
+
 bash /home/tim/e63-coursework/hw6/scripts/splitAndSend2.sh 
 ```
 
 ```{bash eval=FALSE}
-spark-submit --master local[2] /home/tim/e63-coursework/hw6/scripts/count-buys2.py
+spark-submit --master local[2] /home/tim/e63-coursework/hw6/scripts/count-buys3.py
 ```
 
 ## Problem 5 (20%)
-Examine provided Python program stateful_wordcount.py. Make it work as is. If there are errors on the code, fix them. Modify the code so that it outputs the number of words starting with letters a and b. Demonstrate that modified program work. You should provide several both positive and negative examples.
+Examine provided Python program stateful_wordcount.py. Make it work as is. If there are errors on the code, fix them. 
 
+### i) Stateful wordcount
 The script *stateful-wordcount.py* counts words in UTF8 encoded, '\n' delimited text received from the nework every second. To run the stateful_wordcount first the netcat server has to be run. 
 
 ```{bash eval=FALSE}
@@ -433,11 +436,7 @@ nc -lk 9999
 The *stateful_wordcount.py* script has produces errors as " instead of # are used to comment the text. After fixing this, the code is running:
 
 ```{bash eval=FALSE}
-spark-submit --master local[2] /home/tim/e63-coursework/hw6/scripts/stateful_wordcount.py localhost 9999
-```
-
-```{r}
-spark-submit /home/tim/spark/examples/src/main/python/streaming/stateful_network_wordcount.py localhost 9999
+spark-submit --master local[4] /home/tim/e63-coursework/hw6/scripts/stateful_wordcount.py localhost 9999
 ```
 
 #### Netcat server
@@ -446,15 +445,58 @@ tim@ip-172-31-24-35:~/e63-coursework/hw6/data$ nc -lk 9999
 hello world
 this is a test
 talking to the world
+an apple a day, keeps the doctor away
+between you and me, britney is beautiful
 ```
 
 #### Stateful wordcount
+```text
+-------------------------------------------
+Time: 2017-10-13 15:50:45
+-------------------------------------------
+(u'this', 1)
+(u'a', 2)
+(u'and', 1)
+(u'test', 1)
+(u'beautiful', 1)
+(u'apple', 1)
+(u'to', 1)
+(u'me,', 1)
+(u'talking', 1)
+(u'world', 2)
+...
+```
+
+### ii) Word count (a & b)
+Modify the code so that it outputs the number of words starting with letters a and b. Demonstrate that modified program work. You should provide several both positive and negative examples.
+
+Next we're rewriting the the script. 
+```{bash eval=FALSE}
+spark-submit --master local[4] /home/tim/e63-coursework/hw6/scripts/stateful_wordcount2.py localhost 9999
+```
+
+#### Netcat server
 ```text
 tim@ip-172-31-24-35:~/e63-coursework/hw6/data$ nc -lk 9999
 hello world
 this is a test
 talking to the world
+an apple a day, keeps the doctor away
+between you and me, britney is beautiful
 ```
 
-positive examples - words beginning with "a" or "b"
-negative examples - not the above
+```text
+-------------------------------------------
+Time: 2017-10-13 16:01:48
+-------------------------------------------
+(u'a', 2)
+(u'and', 1)
+(u'beautiful', 1)
+(u'apple', 1)
+(u'away', 1)
+(u'britney', 1)
+(u'an', 1)
+(u'between', 1)
+```
+
+The above code shows, that all the words starting with an a or b are selected (positives). Words starting with a different letter are not selected (negatives).

@@ -8,7 +8,7 @@ from pyspark.streaming import StreamingContext
 # Start context
 sc = SparkContext(appName="SparkStreamingCountBuys")
 ssc = StreamingContext(sc, 3)
-ssc.checkpoint("checkpoint")
+ssc.checkpoint("/home/tim/checkpoint")
 filestream = ssc.textFileStream("/home/tim/e63-coursework/hw6/data/input/")
 
 from datetime import datetime
