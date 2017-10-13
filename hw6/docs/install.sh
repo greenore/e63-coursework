@@ -12,7 +12,6 @@ export PATH=$PATH:$HIVE_HOME/bin
 export SPARK_HOME=/home/tim/spark-2.2.0-bin-hadoop2.7
 export PATH=$PATH:$SPARK_HOME/bin
 
-
 #########################################
 # Configuration and start/stop commands #
 #########################################
@@ -54,6 +53,8 @@ configure_hadoop:
 	sed -i '/<\/configuration>/i <property><name>dfs.replication</name><value>1</value></property>' /usr/local/hadoop/etc/hadoop/hdfs-site.xml
 	sed -i '/<\/configuration>/i <property><name>dfs.namenode.name.dir</name><value>file:///home/tim/data/hadoop</value></property>' /usr/local/hadoop/etc/hadoop/hdfs-site.xml
 	/usr/local/hadoop/bin/hdfs namenode -format
+
+
 	ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa
 	cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
 	chmod 0600 ~/.ssh/authorized_keys
