@@ -201,7 +201,7 @@ Batch: 2
 +-------+-----+
 ```
 
-The *network-count-structured.py* is also working. It is running in batches and splits the analysis before giving the final output in *batch 2*.
+The *network-count-structured.py* is also working. It is running in batches and splits the analysis before giving us the final output in *batch 2*.
 
 ## Problem 2 (30%)
 Run the following experiments on Cloudera VM. You need HDFS for these programs to run.
@@ -219,14 +219,13 @@ echo "export DOCKER_HOST='tcp://0.0.0.0:2375'" >> ~/.bashrc
 source ~/.bashrc
 ```
 
-#### Install CDH 5.12
+### ii) Docker setup
 ```{bash eval=FALSE}
+# Install CDH 5.12
 docker pull cloudera/quickstart:latest
-```
 
-### ii) Start docker
-```{bash eval=FALSE}
-docker run --hostname=quickstart.cloudera --privileged=true -it --rm -i -t -p 8888:8888 -p 80:80 -p 7180:7180 -p 8080:8080 -p 18080:18080 -p 18081:18081 -p 8020:8020 cloudera/quickstart /usr/bin/docker-quickstart
+# Start docker
+docker run --hostname=quickstart.cloudera --privileged=true -it --rm -i -t -p 8888:8888 -p 80:80 -p 7180:7180 -p 7077:7077 -p 7078:7078 -p 8080:8080 -p 18080:18080 -p 18081:18081 -p 8020:8020 cloudera/quickstart /usr/bin/docker-quickstart
 ```
 
 #### Start second docker
@@ -238,7 +237,7 @@ docker ps
 
 ```text
 CONTAINER ID        IMAGE                 COMMAND                  CREATED
-819a984e686f        cloudera/quickstart   "/usr/bin/docker-q..."   2 minutes ago
+4b36e5f065e3        cloudera/quickstart   "/usr/bin/docker-q..."   2 minutes ago
 
 STATUS              PORTS
 Up 2 minutes        0.0.0.0:80->80/tcp, 0.0.0.0:7180->7180/tcp, 0.0.0.0:8080->8080/tcp, ...
@@ -247,7 +246,7 @@ Up 2 minutes        0.0.0.0:80->80/tcp, 0.0.0.0:7180->7180/tcp, 0.0.0.0:8080->80
 With the above information we an login to docker.
 ```{bash eval=FALSE}
 # Login with a second screen
-docker exec -it --user root 4bff53893b88 bash
+docker exec -it --user root 4b36e5f065e3 bash
 ```
 
 #### Change to cloudera user
@@ -258,6 +257,7 @@ cd ~
 ```
 
 ### iii) Setup Image
+Before beeing able to start with the analysis we have to setupt the docker environment variables.
 ```{bash eval=FALSE}
 # Add environment variables
 echo "export JAVA_HOME=/usr/java/jdk1.7.0_67-cloudera" >> /home/cloudera/.bash_profile
@@ -266,6 +266,8 @@ echo "export HADOOP_MAPRED_HOME=/usr/lib/hadoop-mapreduce" >> /home/cloudera/.ba
 echo "export PATH=$PATH:$HOME/bin:$JAVA_HOME/bin:$SPARK_HOME/bin" >> /home/cloudera/.bash_profile
 source /home/cloudera/.bash_profile
 ```
+
+Next we're installing *pip* and *findspark*.
 
 ```{bash eval=FALSE}
 sudo yum install python-pip
@@ -291,7 +293,7 @@ sudo vi /usr/lib/spark/conf/log4j.properties
 
 #### Start spark
 ```{bash eval=FALSE}
-sudo /usr/lib/spark/sbin/start-all.sh
+sudo /usr/lib/spark/sbin/start-all.sh --host localhost[2]
 ```
 
 #### Check status
@@ -313,7 +315,7 @@ Hadoop resourcemanager is running                          [  OK  ]
 ```
 The above output shows, that all the necessary hadoop services are up and running. The proxy service is not necessary to run for the following exercices. 
 
-### iv) Add data
+### iv) Get data
 Expand provide *orders.tar.gz* file. Also, download shell scrips *splitAndSend.original.sh* and *splitAndSend.sh* and the Python script *count-buys.py*. 
 ```{bash eval=FALSE}
 git clone https://github.com/greenore/e63.git
@@ -349,50 +351,69 @@ chmod +x splitAndSend.original.sh
 ```
 
 ```{bash eval=FALSE}
-spark-submit --master local[4] /home/cloudera/e63/count-buys.py
+spark-submit --master local[2] /home/cloudera/e63/count-buys.py
 ```
 
 ```text
-[cloudera@quickstart e63]$ spark-submit --master local[4] /home/cloudera/e63/count-buys.py
+[cloudera@quickstart ~]$ spark-submit --master local[2] /home/cloudera/e63/count-buys.py
 SLF4J: Class path contains multiple SLF4J bindings.
 SLF4J: Found binding in [jar:file:/usr/lib/zookeeper/lib/slf4j-log4j12-1.7.5.jar!/org/slf4j/impl/StaticLoggerBinder.class]
 SLF4J: Found binding in [jar:file:/usr/jars/slf4j-log4j12-1.7.5.jar!/org/slf4j/impl/StaticLoggerBinder.class]
 SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
 SLF4J: Actual binding is of type [org.slf4j.impl.Log4jLoggerFactory]
-[Stage 1:>                                                          (0 + 4) / 4]17/10/13 10:02:09 ERROR JobScheduler: Error running job streaming job 1507888926000 ms.0
-py4j.Py4JException: An exception was raised by the Python Proxy. Return Message: null
-        at py4j.Protocol.getReturnValue(Protocol.java:434)
-        at py4j.reflection.PythonProxyHandler.invoke(PythonProxyHandler.java:113)
-        at com.sun.proxy.$Proxy17.call(Unknown Source)
-        at org.apache.spark.streaming.api.python.TransformFunction.callPythonTransformFunction(PythonDStream.scala:92)
-        at org.apache.spark.streaming.api.python.TransformFunction.apply(PythonDStream.scala:78)
-        at org.apache.spark.streaming.api.python.PythonDStream$$anonfun$callForeachRDD$1.apply(PythonDStream.scala:189)
-        at org.apache.spark.streaming.api.python.PythonDStream$$anonfun$callForeachRDD$1.apply(PythonDStream.scala:189)
-        at org.apache.spark.streaming.dstream.ForEachDStream$$anonfun$1$$anonfun$apply$mcV$sp$1.apply$mcV$sp(ForEachDStream.scala:50)
-        at org.apache.spark.streaming.dstream.ForEachDStream$$anonfun$1$$anonfun$apply$mcV$sp$1.apply(ForEachDStream.scala:50)
-        at org.apache.spark.streaming.dstream.ForEachDStream$$anonfun$1$$anonfun$apply$mcV$sp$1.apply(ForEachDStream.scala:50)
-        at org.apache.spark.streaming.dstream.DStream.createRDDWithLocalProperties(DStream.scala:426)
-        at org.apache.spark.streaming.dstream.ForEachDStream$$anonfun$1.apply$mcV$sp(ForEachDStream.scala:49)
-        at org.apache.spark.streaming.dstream.ForEachDStream$$anonfun$1.apply(ForEachDStream.scala:49)
-        at org.apache.spark.streaming.dstream.ForEachDStream$$anonfun$1.apply(ForEachDStream.scala:49)
-        at scala.util.Try$.apply(Try.scala:161)
-        at org.apache.spark.streaming.scheduler.Job.run(Job.scala:39)
-        at org.apache.spark.streaming.scheduler.JobScheduler$JobHandler$$anonfun$run$1.apply$mcV$sp(JobScheduler.scala:224)
-        at org.apache.spark.streaming.scheduler.JobScheduler$JobHandler$$anonfun$run$1.apply(JobScheduler.scala:224)
-        at org.apache.spark.streaming.scheduler.JobScheduler$JobHandler$$anonfun$run$1.apply(JobScheduler.scala:224)
-        at scala.util.DynamicVariable.withValue(DynamicVariable.scala:57)
-        at org.apache.spark.streaming.scheduler.JobScheduler$JobHandler.run(JobScheduler.scala:223)
-        at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
-        at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615)
-        at java.lang.Thread.run(Thread.java:745)
-17/10/13 10:02:09 ERROR JobScheduler: Error generating jobs for time 1507888929000 ms
+Killed
+```
+
+#### Show content
+```{bash eval=FALSE}
+hadoop fs -ls staging
+```
+
+```text
+[cloudera@quickstart ~]$ hadoop fs -ls staging
+```
+The is nothing in the staging folder.
+
+```{bash eval=FALSE}
+hadoop fs -ls input
+```
+
+```text
+Found 12 items
+-rw-r--r--   1 cloudera cloudera     437626 2017-10-13 21:07 input/chunkaa
+-rw-r--r--   1 cloudera cloudera     448647 2017-10-13 21:07 input/chunkab
+-rw-r--r--   1 cloudera cloudera     448605 2017-10-13 21:07 input/chunkac
+-rw-r--r--   1 cloudera cloudera     448624 2017-10-13 21:07 input/chunkae
+-rw-r--r--   1 cloudera cloudera     448553 2017-10-13 21:07 input/chunkaf
+-rw-r--r--   1 cloudera cloudera     448436 2017-10-13 21:08 input/chunkag
+-rw-r--r--   1 cloudera cloudera     448679 2017-10-13 21:08 input/chunkah
+-rw-r--r--   1 cloudera cloudera     448424 2017-10-13 21:08 input/chunkai
+-rw-r--r--   1 cloudera cloudera     448564 2017-10-13 21:08 input/chunkaj
+-rw-r--r--   1 cloudera cloudera     458595 2017-10-13 21:08 input/chunkak
+-rw-r--r--   1 cloudera cloudera     458580 2017-10-13 21:08 input/chunkal
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:08 input/chunkam._COPYING_
+```
+
+```{bash eval=FALSE}
+hadoop fs -ls output
+```
+
+```text
+[cloudera@quickstart e63]$ hadoop fs -ls output
+Found 16 items
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:06 output/output-1507930326000.txt
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:06 output/output-1507930329000.txt
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:06 output/output-1507930332000.txt
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:06 output/output-1507930335000.txt
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:06 output/output-1507930338000.txt
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:06 output/output-1507930341000.txt
 ...
 ```
 
-The SLF4J error can be ignored. However, if the number of standard deviations by which a task's average progress-rates is lower than the average of all running tasks the so called *race condition* is appearing. That means that by copying directly from the local file system to the hadoop *input* directory, there are cases where Spark tries to read the file just after it's name was changes. This leads to files named chunkaa._COPYING_". When the file is finished copying, the extension is changed. If Spark now sees the new temp file and then tries to read it just after its name was changed, it causes a *file not found error* and the scripts exits. That means that once one of the two tasks finishes successfully, the other task is killed.
+The SLF4J error can be ignored. The output files also look good. However, if the number of standard deviations by which a task's average progress-rates is lower than the average of all running tasks the so called *race condition* is appearing. That means that by copying directly from the local file system to the hadoop *input* directory, there are cases where Spark tries to read the file just after it's name was changes. This leads to files named chunkaa._COPYING_". When the file is finished copying, the extension is changed. If Spark now sees the new temp file and then tries to read it just after its name was changed, it causes a *file not found error* and the scripts exits. That means that once one of the two tasks finishes successfully, the other task is killed.
 
 ### vi) Eliminate race condition
-Then run script *splitAndSend.sh* and Python program *count-buys.py* and tell us what the results are. In both cases show use contents of your HDFS directories input, output and staging. The second script *splitAndSend.sh* is supposed to reduce or eliminate the race condition.  In both cases, show the partial contents of your HDFS directories *input*, *output* and *staging*. 
+Then run script *splitAndSend.sh* and Python program *count-buys.py* and tell us what the results are. In both cases show use contents of your HDFS directories input, output and staging. The second script *splitAndSend.sh* is supposed to reduce or eliminate the race condition.
 
 #### Empty folders
 ```{bash eval=FALSE}
@@ -410,7 +431,7 @@ chmod +x splitAndSend.sh
 ```
 
 ```{bash eval=FALSE}
-spark-submit --master local[4] /home/cloudera/e63/count-buys.py
+spark-submit --master local[2] /home/cloudera/e63/count-buys.py
 ```
 
 #### Show content
@@ -419,66 +440,29 @@ hadoop fs -ls staging
 ```
 
 ```text
+[cloudera@quickstart ~]$ hadoop fs -ls staging
 Found 1 items
--rw-r--r--   1 cloudera cloudera     458673 2017-10-13 08:34 staging/chunkbh
+-rw-r--r--   1 cloudera cloudera     448564 2017-10-13 21:13 staging/chunkaj
 ```
 
 ```{bash eval=FALSE}
 hadoop fs -ls input
 ```
 ```text
-[cloudera@quickstart sbin]$ hadoop fs -ls splits
-Found 50 items
--rw-r--r--   1 cloudera cloudera     437626 2017-10-12 12:50 splits/chunkaa
--rw-r--r--   1 cloudera cloudera     448647 2017-10-12 12:50 splits/chunkab
--rw-r--r--   1 cloudera cloudera     448605 2017-10-12 12:50 splits/chunkac
--rw-r--r--   1 cloudera cloudera     448794 2017-10-12 12:51 splits/chunkad
--rw-r--r--   1 cloudera cloudera     448624 2017-10-12 12:51 splits/chunkae
--rw-r--r--   1 cloudera cloudera     448553 2017-10-12 12:51 splits/chunkaf
--rw-r--r--   1 cloudera cloudera     448436 2017-10-12 12:51 splits/chunkag
--rw-r--r--   1 cloudera cloudera     448679 2017-10-12 12:51 splits/chunkah
--rw-r--r--   1 cloudera cloudera     448424 2017-10-12 12:51 splits/chunkai
--rw-r--r--   1 cloudera cloudera     448564 2017-10-12 12:51 splits/chunkaj
--rw-r--r--   1 cloudera cloudera     458595 2017-10-12 12:51 splits/chunkak
--rw-r--r--   1 cloudera cloudera     458580 2017-10-12 12:52 splits/chunkal
--rw-r--r--   1 cloudera cloudera     458605 2017-10-12 12:52 splits/chunkam
--rw-r--r--   1 cloudera cloudera     458630 2017-10-12 12:52 splits/chunkan
--rw-r--r--   1 cloudera cloudera     458663 2017-10-12 12:52 splits/chunkao
--rw-r--r--   1 cloudera cloudera     458540 2017-10-12 12:52 splits/chunkap
--rw-r--r--   1 cloudera cloudera     458533 2017-10-12 12:52 splits/chunkaq
--rw-r--r--   1 cloudera cloudera     458403 2017-10-12 12:52 splits/chunkar
--rw-r--r--   1 cloudera cloudera     458470 2017-10-12 12:53 splits/chunkas
--rw-r--r--   1 cloudera cloudera     458584 2017-10-12 12:53 splits/chunkat
--rw-r--r--   1 cloudera cloudera     458333 2017-10-12 12:53 splits/chunkau
--rw-r--r--   1 cloudera cloudera     458600 2017-10-12 12:53 splits/chunkav
--rw-r--r--   1 cloudera cloudera     458732 2017-10-12 12:53 splits/chunkaw
--rw-r--r--   1 cloudera cloudera     458559 2017-10-12 12:54 splits/chunkax
--rw-r--r--   1 cloudera cloudera     458654 2017-10-12 12:54 splits/chunkay
--rw-r--r--   1 cloudera cloudera     458533 2017-10-12 12:54 splits/chunkaz
--rw-r--r--   1 cloudera cloudera     458535 2017-10-12 12:54 splits/chunkba
--rw-r--r--   1 cloudera cloudera     458700 2017-10-12 12:54 splits/chunkbb
--rw-r--r--   1 cloudera cloudera     458509 2017-10-12 12:54 splits/chunkbc
--rw-r--r--   1 cloudera cloudera     458488 2017-10-12 12:54 splits/chunkbd
--rw-r--r--   1 cloudera cloudera     458527 2017-10-12 12:55 splits/chunkbe
--rw-r--r--   1 cloudera cloudera     458662 2017-10-12 12:55 splits/chunkbf
--rw-r--r--   1 cloudera cloudera     458618 2017-10-12 12:55 splits/chunkbg
--rw-r--r--   1 cloudera cloudera     458673 2017-10-12 12:55 splits/chunkbh
--rw-r--r--   1 cloudera cloudera     458431 2017-10-12 12:55 splits/chunkbi
--rw-r--r--   1 cloudera cloudera     458464 2017-10-12 12:55 splits/chunkbj
--rw-r--r--   1 cloudera cloudera     458450 2017-10-12 12:55 splits/chunkbk
--rw-r--r--   1 cloudera cloudera     458536 2017-10-12 12:56 splits/chunkbl
--rw-r--r--   1 cloudera cloudera     458412 2017-10-12 12:56 splits/chunkbm
--rw-r--r--   1 cloudera cloudera     458712 2017-10-12 12:56 splits/chunkbn
--rw-r--r--   1 cloudera cloudera     458586 2017-10-12 12:56 splits/chunkbo
--rw-r--r--   1 cloudera cloudera     458501 2017-10-12 12:56 splits/chunkbp
--rw-r--r--   1 cloudera cloudera     458569 2017-10-12 12:56 splits/chunkbq
--rw-r--r--   1 cloudera cloudera     458459 2017-10-12 12:57 splits/chunkbr
--rw-r--r--   1 cloudera cloudera     458737 2017-10-12 12:57 splits/chunkbs
--rw-r--r--   1 cloudera cloudera     458556 2017-10-12 12:57 splits/chunkbt
--rw-r--r--   1 cloudera cloudera     458358 2017-10-12 12:57 splits/chunkbu
--rw-r--r--   1 cloudera cloudera     458570 2017-10-12 12:57 splits/chunkbv
--rw-r--r--   1 cloudera cloudera     458639 2017-10-12 12:57 splits/chunkbw
--rw-r--r--   1 cloudera cloudera     458503 2017-10-12 12:57 splits/chunkbx
+[cloudera@quickstart ~]$ hadoop fs -ls input
+Found 12 items
+-rw-r--r--   1 cloudera cloudera     437626 2017-10-13 21:12 input/chunkaa
+-rw-r--r--   1 cloudera cloudera     448647 2017-10-13 21:12 input/chunkab
+-rw-r--r--   1 cloudera cloudera     448605 2017-10-13 21:12 input/chunkac
+-rw-r--r--   1 cloudera cloudera     448794 2017-10-13 21:12 input/chunkad
+-rw-r--r--   1 cloudera cloudera     448624 2017-10-13 21:12 input/chunkae
+-rw-r--r--   1 cloudera cloudera     448553 2017-10-13 21:12 input/chunkaf
+-rw-r--r--   1 cloudera cloudera     448436 2017-10-13 21:12 input/chunkag
+-rw-r--r--   1 cloudera cloudera     448679 2017-10-13 21:13 input/chunkah
+-rw-r--r--   1 cloudera cloudera     448424 2017-10-13 21:13 input/chunkai
+-rw-r--r--   1 cloudera cloudera     448564 2017-10-13 21:13 input/chunkaj
+-rw-r--r--   1 cloudera cloudera     458595 2017-10-13 21:13 input/chunkak
+-rw-r--r--   1 cloudera cloudera     458580 2017-10-13 21:14 input/chunkal
 ```
 
 ```{bash eval=FALSE}
@@ -486,41 +470,134 @@ hadoop fs -ls -R output
 ```
 
 ```text
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883746000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883746000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 08:36 output/output-1507883746000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883749000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera         22 2017-10-13 08:36 output/output-1507883749000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 08:36 output/output-1507883749000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883752000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883752000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 08:36 output/output-1507883752000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883755000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera         20 2017-10-13 08:36 output/output-1507883755000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 08:36 output/output-1507883755000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883758000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883758000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 08:36 output/output-1507883758000.txt
--rw-r--r--   1 cloudera cloudera         21 2017-10-13 08:36 output/output-1507883761000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883761000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 08:36 output/output-1507883761000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883764000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera         20 2017-10-13 08:36 output/output-1507883764000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 08:36 output/output-1507883764000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883767000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera         21 2017-10-13 08:36 output/output-1507883767000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 08:36 output/output-1507883767000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883777000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883777000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 08:36 output/output-1507883777000.txt
+[cloudera@quickstart ~]$ hadoop fs -ls -R output
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:12 output/output-1507929150000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929150000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929150000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:12 output/output-1507929153000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929153000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929153000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:12 output/output-1507929156000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929156000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929156000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:12 output/output-1507929159000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929159000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera         29 2017-10-13 21:12 output/output-1507929159000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:12 output/output-1507929162000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929162000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929162000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:12 output/output-1507929165000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929165000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929165000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:12 output/output-1507929168000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929168000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera         29 2017-10-13 21:12 output/output-1507929168000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:12 output/output-1507929171000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929171000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929171000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:12 output/output-1507929174000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929174000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929174000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:12 output/output-1507929177000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929177000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera         29 2017-10-13 21:12 output/output-1507929177000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929180000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929180000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929180000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929183000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929183000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929183000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929186000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929186000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera         29 2017-10-13 21:13 output/output-1507929186000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929189000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929189000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929189000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929192000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929192000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929192000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929195000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929195000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929195000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929198000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929198000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera         29 2017-10-13 21:13 output/output-1507929198000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929201000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929201000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929201000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929204000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929204000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929204000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929207000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929207000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera         29 2017-10-13 21:13 output/output-1507929207000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929210000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929210000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929210000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929213000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929213000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929213000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929216000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929216000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929216000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929219000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929219000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929219000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929222000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929222000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929222000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929225000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929225000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929225000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929228000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929228000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929228000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929231000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929231000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929231000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929234000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929234000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera         29 2017-10-13 21:13 output/output-1507929234000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929237000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929237000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929237000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:14 output/output-1507929240000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929240000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929240000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:14 output/output-1507929243000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929243000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929243000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:14 output/output-1507929246000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929246000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera         29 2017-10-13 21:14 output/output-1507929246000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:14 output/output-1507929249000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929249000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929249000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:14 output/output-1507929252000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929252000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929252000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:14 output/output-1507929255000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929255000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929255000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:14 output/output-1507929258000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929258000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera         29 2017-10-13 21:14 output/output-1507929258000.txt/part-00000
 ```
 
 #### Show part-00000
 In the second run, locate an output file named *part-00000* that is not empty and show its content to us.  
 
 ```{bash eval=FALSE}
-hadoop fs -cat output/output-1507883755000.txt/part-00000
+hadoop fs -cat output/output-1507929258000.txt/part-00000
 ```
+
+```text
+[cloudera@quickstart e63]$ hadoop fs -cat output/output-1507929258000.txt/part-00000
+(False, 4876L)
+(True, 5124L)
+```
+
+That means there were 5124 buys and 4876 sells in that particualar 3 second interval. 
 
 ## Problem 3 (10%)
 In the second run of the previous problem you will notice that many of part-00000 files in your output directory are empty. Could you explain why.
