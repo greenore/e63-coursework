@@ -305,7 +305,7 @@ Hadoop nodemanager is running                              [  OK  ]
 Hadoop proxyserver is not running                          [FAILED]
 Hadoop resourcemanager is running                          [  OK  ]
 ```
-The aboe output shows, that all the necessary hadoop services are up and running. The proxy service is not necessary to run for the following exercices. 
+The above output shows, that all the necessary hadoop services are up and running. The proxy service is not necessary to run for the following exercices. 
 
 ### Add data
 Expand provide *orders.tar.gz* file. Also, download shell scrips *splitAndSend.original.sh* and *splitAndSend.sh* and the Python script *count-buys.py*. 
@@ -383,7 +383,7 @@ py4j.Py4JException: An exception was raised by the Python Proxy. Return Message:
 ...
 ```
 
-The SLF4J error can be ignored. However, if the number of standard deviations by which a task's average progress-rates is lower than the average of all running tasks the so called *race condition* is appearing. That means that by copying irectly from the local file system to the hadoop *input* directory, from local files there are cases where Spark tries to read the file just after it's name was changes. This leas to files named chunkaa._COPYING_". When the file is finished copying, the extension is changed. If Spark now sees the new temp file and then tries to read it just after its name was changed, it causes a File not Found Error and the scripts exits. That means that once one of the two tasks finishes successfully, the other task is killed.
+The SLF4J error can be ignored. However, if the number of standard deviations by which a task's average progress-rates is lower than the average of all running tasks the so called *race condition* is appearing. That means that by copying directly from the local file system to the hadoop *input* directory, there are cases where Spark tries to read the file just after it's name was changes. This leads to files named chunkaa._COPYING_". When the file is finished copying, the extension is changed. If Spark now sees the new temp file and then tries to read it just after its name was changed, it causes a *file not found error* and the scripts exits. That means that once one of the two tasks finishes successfully, the other task is killed.
 
 ### ii) Eliminate race condition
 Then run script *splitAndSend.sh* and Python program *count-buys.py* and tell us what the results are. In both cases show use contents of your HDFS directories input, output and staging. The second script *splitAndSend.sh* is supposed to reduce or eliminate the race condition.  In both cases, show the partial contents of your HDFS directories *input*, *output* and *staging*. 
@@ -529,22 +529,89 @@ The empty files mean that there was no input in that particular interval.
 ## Problem 4 (20%)
 Could you rewrite count-buys.sh in Spark Structured Streaming API. If you do that change script splitAndSend.sh to move generated chunks from the local files system directory staging to local file system directory input. Run this experiment on your VM with Spark 2.2.
 
-### Generate folders
+### i) Rewrite splitAndSend
+In order to use the native *Spark Structured Streaming API* we need to rewrite *splitAndSend.sh* so that it runds locally and no longer on the *HDFS* system. In order to do that first the two folder *input* and *staging* have to be created on the local filesystem. 
+
 ```{bash eval=FALSE}
+### Generate folders
 mkdir -p /home/tim/e63-coursework/hw6/data/input/
 mkdir -p /home/tim/e63-coursework/hw6/data/staging
 ```
 
-### Move generated chunks to local file system
-```{bash eval=FALSE}
-rm -r /home/tim/e63-coursework/hw6/data/staging/*
-rm -r /home/tim/e63-coursework/hw6/data/input/*
+Next we can rewrite *splitAndSend.sh* to *splitAndSend2.sh*
 
+```{bash eval=FALSE}
+#!/bin/bash
+
+# Split data into chunks
+split -l 10000 /home/tim/e63-coursework/hw6/data/orders.txt /home/tim/e63-coursework/hw6/data/staging/chunk
+
+# Simulate stream with 3 seconds difference
+for f in `ls /home/tim/e63-coursework/hw6/data/staging/chunk*`; do
+        sleep 3
+        mv $f /home/tim/e63-coursework/hw6/data/input/
+        rm -f $f
+done
+```
+
+### ii) Rewrite count-buys
+Next we have to rewrite the count-buys function. In principal what we have to do is to define the Schema for the input rows, create the spark session, create a DataFrame representing the stream of input files, count the buys / sells in the window using the timestamp as a watermark. The resulting file can be found in *count-buys2.py*. It's code is below:
+
+```{bash eval=FALSE}
+# Libraries
+from __future__ import print_function
+import findspark
+findspark.init("/home/tim/spark")
+from pyspark import SparkContext
+from pyspark.streaming import StreamingContext
+from pyspark.sql import SparkSession
+from pyspark.sql.types import *
+from pyspark.sql.functions import *
+
+# Build session
+spark = SparkSession.builder.appName("StructuredCountBuys").getOrCreate()
+
+# Define schema
+schema = StructType([StructField('time', TimestampType(), True),
+                     StructField('orderId', IntegerType(), True),
+                     StructField('clientId', IntegerType(), True),
+                     StructField('symbol', StringType(), True),
+                     StructField('amount', IntegerType(), True),
+                     StructField('price', FloatType(), True),
+                     StructField('buy', StringType(), True)])
+
+# Read stream
+df_stockmarket = spark.readStream.csv("/home/tim/e63-coursework/hw6/data/input/",
+                                      schema=schema, sep=',')
+
+# Group by (with watermark and window)
+df_buys = df_stockmarket.withWatermark("time", "1 minutes") \
+                        .groupBy("buy", window("time", "1 seconds")) \
+                        .count()
+
+# Write stream
+df_buys.writeStream.queryName("aggregates") \
+       .outputMode("complete") \
+       .format("console") \
+       .start() \
+       .awaitTermination()
+```
+
+
+### iii) Run Spark API Stream
+Next we can run the code.
+
+
+#### SplitandSend
+```{bash eval=FALSE}
+# rm -r /home/tim/e63-coursework/hw6/data/staging/*
+# rm -r /home/tim/e63-coursework/hw6/data/input/*
 bash /home/tim/e63-coursework/hw6/scripts/splitAndSend2.sh
 ```
 
+#### Count-buys
 ```{bash eval=FALSE}
-spark-submit --master local[4] /home/tim/e63-coursework/hw6/scripts/count-buys4.py
+spark-submit --master local[4] /home/tim/e63-coursework/hw6/scripts/count-buys2.py
 ```
 
 ```text
@@ -678,7 +745,48 @@ Time: 2017-10-13 15:50:45
 ### ii) Word count (a & b)
 Modify the code so that it outputs the number of words starting with letters a and b. Demonstrate that modified program work. You should provide several both positive and negative examples.
 
-Next we're rewriting the the script. 
+Next we're rewriting the the script. The code from the resulting *stateful_wordcount2.py* is below:
+
+```{bash eval=FALSE}
+# Load libraries
+from __future__ import print_function
+import sys
+from pyspark import SparkContext
+from pyspark.streaming import StreamingContext
+
+# Exit condition
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print("Usage: stateful_network_wordcount.py <hostname> <port>", file=sys.stderr)
+        exit(-1)
+    
+    # Load Sparkcontext
+    sc = SparkContext(appName="PythonStreamingStatefulNetworkWordCount")
+    ssc = StreamingContext(sc, 3)
+    ssc.checkpoint("checkpoint")
+
+    # Define update function
+    def updateFunc(new_values, last_sum):
+        return sum(new_values) + (last_sum or 0)
+
+    # Load data
+    lines = ssc.socketTextStream(sys.argv[1], int(sys.argv[2]))
+    
+    # Map and filter data
+    running_counts = lines.flatMap(lambda line: line.split(" "))\
+                          .filter(lambda x: x.startswith("a") or x.startswith("b"))\
+                          .map(lambda word: (word, 1))\
+                          .updateStateByKey(updateFunc)
+    
+    # Print data
+    running_counts.pprint()
+
+    ssc.start()
+    ssc.awaitTermination()
+```
+
+As the *netcat* server is still running we only have to run the *stateful_wordcount2.py* script from above.
+
 ```{bash eval=FALSE}
 spark-submit --master local[4] /home/tim/e63-coursework/hw6/scripts/stateful_wordcount2.py localhost 9999
 ```
