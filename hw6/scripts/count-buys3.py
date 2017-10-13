@@ -20,3 +20,4 @@ df_stocks = spark.readStream.schema(myschema).csv("/home/tim/e63-coursework/hw6/
 query = df_stocks.writeStream("/home/tim/e63-coursework/hw6/data/output/")
 query.awaitTermination()
 
+
