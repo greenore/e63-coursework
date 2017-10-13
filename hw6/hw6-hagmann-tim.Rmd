@@ -141,6 +141,27 @@ sudo pip install --upgrade pip
 sudo pip install findspark
 ```
 
+#### Modify log4j.properties
+In order to eliminate the error messages in the **spark-shell**, we have to create the log4j.properties file from the template file and setting the log level to ERROR and log4j.rootCategory=ERROR.
+
+```{bash eval=FALSE}
+# Create log4j.properties
+sudo mv /usr/lib/spark/conf/log4j.properties.template /usr/lib/spark/conf/log4j.properties
+
+# Edit file
+sudo vi /usr/lib/spark/conf/log4j.properties
+
+# Replace INFO, WARN with ERROR.
+:g /WARN/s//ERROR/g
+:g /INFO/s//ERROR/g
+:wq
+```
+
+#### Start spark
+```{bash eval=FALSE}
+sudo /usr/lib/spark/sbin/start-all.sh
+```
+
 ### Check status
 ```{bash eval=FALSE}
 for x in `cd /etc/init.d ; ls hadoop-*`; do sudo service $x status ; done
@@ -173,8 +194,7 @@ tar xvzf orders.tar.gz
 ### Setup hadoop directory structure
 ```{bash eval=FALSE}
 # Create 3 directories in hdfs: staging, splits, out/out1
-hadoop fs -mkdir -p staging splits out/out1
-hadoop fs -mkdir -p input output
+hadoop fs -mkdir -p staging input output
 
 hadoop fs -ls
 ```
@@ -182,9 +202,9 @@ hadoop fs -ls
 ```text
 [cloudera@quickstart e63]$ hadoop fs -ls
 Found 3 items
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 07:41 out
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 07:41 splits
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 07:41 staging
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 07:41 stating
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 07:41 input
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 07:41 output
 ```
 
 ### i) Run original code
@@ -193,7 +213,7 @@ First run *splitAndSend.original.sh* and *count-buys.py*. Record the failure mod
 ```{bash eval=FALSE}
 # Run scripts
 chmod +x splitAndSend.original.sh
-./splitAndSend.original.sh splits
+./splitAndSend.original.sh input
 ```
 
 ```{bash eval=FALSE}
@@ -201,44 +221,51 @@ spark-submit --master local[4] /home/cloudera/e63/count-buys.py
 ```
 
 ```text
+[cloudera@quickstart e63]$ spark-submit --master local[4] /home/cloudera/e63/count-buys.py
 SLF4J: Class path contains multiple SLF4J bindings.
 SLF4J: Found binding in [jar:file:/usr/lib/zookeeper/lib/slf4j-log4j12-1.7.5.jar!/org/slf4j/impl/StaticLoggerBinder.class]
 SLF4J: Found binding in [jar:file:/usr/jars/slf4j-log4j12-1.7.5.jar!/org/slf4j/impl/StaticLoggerBinder.class]
 SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
 SLF4J: Actual binding is of type [org.slf4j.impl.Log4jLoggerFactory]
-17/10/12 12:37:01 INFO spark.SparkContext: Running Spark version 1.6.0
-17/10/12 12:37:02 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
-17/10/12 12:37:02 INFO spark.SecurityManager: Changing view acls to: cloudera
-17/10/12 12:37:02 INFO spark.SecurityManager: Changing modify acls to: cloudera
-17/10/12 12:37:02 INFO spark.SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: Set(cloudera); users with modify permissions: Set(cloudera)
-17/10/12 12:37:03 INFO util.Utils: Successfully started service 'sparkDriver' on port 45365.
-17/10/12 12:37:03 INFO slf4j.Slf4jLogger: Slf4jLogger started
-17/10/12 12:37:03 INFO Remoting: Starting remoting
-17/10/12 12:37:04 INFO Remoting: Remoting started; listening on addresses :[akka.tcp://sparkDriverActorSystem@172.17.0.2:37413]
-17/10/12 12:37:04 INFO Remoting: Remoting now listens on addresses: [akka.tcp://sparkDriverActorSystem@172.17.0.2:37413]
-17/10/12 12:37:04 INFO util.Utils: Successfully started service 'sparkDriverActorSystem' on port 37413.
-17/10/12 12:37:04 INFO spark.SparkEnv: Registering MapOutputTracker
-17/10/12 12:37:04 INFO spark.SparkEnv: Registering BlockManagerMaster
-17/10/12 12:37:04 INFO storage.DiskBlockManager: Created local directory at /tmp/blockmgr-36d03cbc-76ad-44d2-b935-31e4561a3f66
-17/10/12 12:37:04 INFO storage.MemoryStore: MemoryStore started with capacity 530.3 MB
-17/10/12 12:37:06 INFO spark.SparkEnv: Registering OutputCommitCoordinator
-17/10/12 12:37:11 INFO server.Server: jetty-8.y.z-SNAPSHOT
-17/10/12 12:37:13 INFO server.AbstractConnector: Started SelectChannelConnector@0.0.0.0:4040
-17/10/12 12:37:13 INFO util.Utils: Successfully started service 'SparkUI' on port 4040.
-Killed
+[Stage 1:>                                                          (0 + 4) / 4]17/10/13 10:02:09 ERROR JobScheduler: Error running job streaming job 1507888926000 ms.0
+py4j.Py4JException: An exception was raised by the Python Proxy. Return Message: null
+        at py4j.Protocol.getReturnValue(Protocol.java:434)
+        at py4j.reflection.PythonProxyHandler.invoke(PythonProxyHandler.java:113)
+        at com.sun.proxy.$Proxy17.call(Unknown Source)
+        at org.apache.spark.streaming.api.python.TransformFunction.callPythonTransformFunction(PythonDStream.scala:92)
+        at org.apache.spark.streaming.api.python.TransformFunction.apply(PythonDStream.scala:78)
+        at org.apache.spark.streaming.api.python.PythonDStream$$anonfun$callForeachRDD$1.apply(PythonDStream.scala:189)
+        at org.apache.spark.streaming.api.python.PythonDStream$$anonfun$callForeachRDD$1.apply(PythonDStream.scala:189)
+        at org.apache.spark.streaming.dstream.ForEachDStream$$anonfun$1$$anonfun$apply$mcV$sp$1.apply$mcV$sp(ForEachDStream.scala:50)
+        at org.apache.spark.streaming.dstream.ForEachDStream$$anonfun$1$$anonfun$apply$mcV$sp$1.apply(ForEachDStream.scala:50)
+        at org.apache.spark.streaming.dstream.ForEachDStream$$anonfun$1$$anonfun$apply$mcV$sp$1.apply(ForEachDStream.scala:50)
+        at org.apache.spark.streaming.dstream.DStream.createRDDWithLocalProperties(DStream.scala:426)
+        at org.apache.spark.streaming.dstream.ForEachDStream$$anonfun$1.apply$mcV$sp(ForEachDStream.scala:49)
+        at org.apache.spark.streaming.dstream.ForEachDStream$$anonfun$1.apply(ForEachDStream.scala:49)
+        at org.apache.spark.streaming.dstream.ForEachDStream$$anonfun$1.apply(ForEachDStream.scala:49)
+        at scala.util.Try$.apply(Try.scala:161)
+        at org.apache.spark.streaming.scheduler.Job.run(Job.scala:39)
+        at org.apache.spark.streaming.scheduler.JobScheduler$JobHandler$$anonfun$run$1.apply$mcV$sp(JobScheduler.scala:224)
+        at org.apache.spark.streaming.scheduler.JobScheduler$JobHandler$$anonfun$run$1.apply(JobScheduler.scala:224)
+        at org.apache.spark.streaming.scheduler.JobScheduler$JobHandler$$anonfun$run$1.apply(JobScheduler.scala:224)
+        at scala.util.DynamicVariable.withValue(DynamicVariable.scala:57)
+        at org.apache.spark.streaming.scheduler.JobScheduler$JobHandler.run(JobScheduler.scala:223)
+        at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
+        at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615)
+        at java.lang.Thread.run(Thread.java:745)
+17/10/13 10:02:09 ERROR JobScheduler: Error generating jobs for time 1507888929000 ms
+...
 ```
 
-The SLF4J error can be ignored. However, if the number of standard deviations by which a task's average progress-rates is lower than the average of all running tasks the so called *race condition* is appearing. That means that once one of the two tasks finishes successfully, the other task is killed.
+The SLF4J error can be ignored. However, if the number of standard deviations by which a task's average progress-rates is lower than the average of all running tasks the so called *race condition* is appearing. That means that by copying irectly from the local file system to the hadoop *input* directory, from local files there are cases where Spark tries to read the file just after it's name was changes. This leas to files named chunkaa._COPYING_". When the file is finished copying, the extension is changed. If Spark now sees the new temp file and then tries to read it just after its name was changed, it causes a File not Found Error and the scripts exits. That means that once one of the two tasks finishes successfully, the other task is killed.
 
 ### ii) Eliminate race condition
-Then run script *splitAndSend.sh* and Python program *count-buys.py* and tell us what the results are. In both cases show use contents of your HDFS directories input, output and staging. The second script *splitAndSend.sh* is supposed to reduce or eliminate the race condition.  You might want to rename HDFS directory output from the first run in order to preserve its content. In both cases, show the partial contents of your HDFS directories *input*, *output* and *staging*. 
- 
+Then run script *splitAndSend.sh* and Python program *count-buys.py* and tell us what the results are. In both cases show use contents of your HDFS directories input, output and staging. The second script *splitAndSend.sh* is supposed to reduce or eliminate the race condition.  In both cases, show the partial contents of your HDFS directories *input*, *output* and *staging*. 
+
 ### Empty folders
 ```{bash eval=FALSE}
 # Empty folders
 hadoop fs -rm -r staging/*
-hadoop fs -rm -r splits/*
-hadoop fs -rm -r out/out1/*
 hadoop fs -rm -r output/*
 hadoop fs -rm -r input/*
 ```
@@ -251,12 +278,7 @@ chmod +x splitAndSend.sh
 ```
 
 ```{bash eval=FALSE}
-spark-submit --master local[2] /home/cloudera/e63/count-buys.py
-```
-
-### Delete files
-```{bash eval=FALSE}
-hadoop fs -rm -r staging/* splits/* out/out1/*
+spark-submit --master local[4] /home/cloudera/e63/count-buys.py
 ```
 
 ### Show content
@@ -270,7 +292,7 @@ Found 1 items
 ```
 
 ```{bash eval=FALSE}
-hadoop fs -ls splits
+hadoop fs -ls input
 ```
 ```text
 [cloudera@quickstart sbin]$ hadoop fs -ls splits
@@ -371,12 +393,68 @@ hadoop fs -cat output/output-1507883755000.txt/part-00000
 In the second run of the previous problem you will notice that many of part-00000 files in your output directory are empty. Could you explain why.
 (10%)
 
+Some part-00000 files are empty. Those are not empty contain the result of counting of stock buys in the particular (5) second interval. The result is in the form :
+(False, 4962L)
+(True, 5038L)
+In the examided 5 seconds there were 5038 buys and 4962 sells.
+
+The empty files mean that there was no input in that particular interval.
+
 ## Problem 4 (20%)
 Could you rewrite count-buys.sh in Spark Structured Streaming API. If you do that change script splitAndSend.sh to move generated chunks from the local files system directory staging to local file system directory input. Run this experiment on your VM with Spark 2.2.
 
+### Generate folders
 ```{bash eval=FALSE}
-bash scripts/splitAndSend.sh data/input local
+mkdir -p /home/tim/e63-coursework/hw6/data/input/
+mkdir -p /home/tim/e63-coursework/hw6/data/output
+mkdir -p /home/tim/e63-coursework/hw6/data/staging
+```
+
+### Move generated chunks to local file system
+```{bash eval=FALSE}
+rm -r /home/tim/e63-coursework/hw6/data/staging/*
+rm -r /home/tim/e63-coursework/hw6/data/input/*
+bash /home/tim/e63-coursework/hw6/scripts/splitAndSend2.sh 
+```
+
+```{bash eval=FALSE}
+spark-submit --master local[2] /home/tim/e63-coursework/hw6/scripts/count-buys2.py
 ```
 
 ## Problem 5 (20%)
 Examine provided Python program stateful_wordcount.py. Make it work as is. If there are errors on the code, fix them. Modify the code so that it outputs the number of words starting with letters a and b. Demonstrate that modified program work. You should provide several both positive and negative examples.
+
+The script *stateful-wordcount.py* counts words in UTF8 encoded, '\n' delimited text received from the nework every second. To run the stateful_wordcount first the netcat server has to be run. 
+
+```{bash eval=FALSE}
+nc -lk 9999
+```
+
+The *stateful_wordcount.py* script has produces errors as " instead of # are used to comment the text. After fixing this, the code is running:
+
+```{bash eval=FALSE}
+spark-submit --master local[2] /home/tim/e63-coursework/hw6/scripts/stateful_wordcount.py localhost 9999
+```
+
+```{r}
+spark-submit /home/tim/spark/examples/src/main/python/streaming/stateful_network_wordcount.py localhost 9999
+```
+
+#### Netcat server
+```text
+tim@ip-172-31-24-35:~/e63-coursework/hw6/data$ nc -lk 9999
+hello world
+this is a test
+talking to the world
+```
+
+#### Stateful wordcount
+```text
+tim@ip-172-31-24-35:~/e63-coursework/hw6/data$ nc -lk 9999
+hello world
+this is a test
+talking to the world
+```
+
+positive examples - words beginning with "a" or "b"
+negative examples - not the above

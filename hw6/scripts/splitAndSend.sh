@@ -5,7 +5,7 @@ if [ -z "$1" ]; then
         exit 1
 fi
 
-split -l 10000 data/orders.txt chunk
+split -l 10000 /home/tim/e63-coursework/hw6/data/orders.txt chunk
 
 for f in `ls chunk*`; do
         if [ "$2" == "local" ]; then

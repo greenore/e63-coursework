@@ -1,38 +1,15 @@
+# Libraries
 from __future__ import print_function
 import findspark
 findspark.init("/home/tim/spark")
 from pyspark import SparkContext
-from pyspark.sql import SparkSession
-from pyspark.sql.types import *
-
 from pyspark.streaming import StreamingContext
 
-# Create Session
-spark = SparkSession.builder.master("local") \
-                    .appName("SparkStreamingCountBuys").getOrCreate()
-
-
-# Create schema
-schemaString = "date OrderId Client Id Stocksymbol NoStockTraded Price ByOrSell"
-fields = [StructField(field_name, StringType(), True) for field_name in schemaString.split()]
-schema = StructType(fields)
-filestream = spark.readStream.format("csv").option("sep", ",").schema(schema).load("file:////home/tim/e63-coursework/hw6/data/input/")
-
-filestream.show(5)
-df_chunk = spark.read.csv("/home/tim/e63-coursework/hw6/data/input/chunkaa")
-df_chunk.show(5)
-
-val df = sqlContext.read.format("com.databricks.spark.csv").option("header", "true").option("inferSchema", "true").option("delimiter", '|').load("/path/to/file.csv")
-
-
-
-
-
-
-filestream = scc.textFileStream("/home/tim/e63-coursework/hw6/data/input/")
-
-
-
+# Start context
+sc = SparkContext(appName="SparkStreamingCountBuys")
+ssc = StreamingContext(sc, 3)
+ssc.checkpoint("checkpoint")
+filestream = ssc.textFileStream("/home/tim/e63-coursework/hw6/data/input/")
 
 from datetime import datetime
 def parseOrder(line):
@@ -47,12 +24,11 @@ def parseOrder(line):
 
 orders = filestream.flatMap(parseOrder)
 
+# Generate (symbol, volume) pairs for each micro-batch
 from operator import add
 numPerType = orders.map(lambda o: (o['buy'], 1L)).reduceByKey(add)
 
-numPerType.repartition(1).saveAsTextFiles("hdfs:///user/cloudera/output/output", "txt")
+numPerType.repartition(1).saveAsTextFiles("/home/tim/e63-coursework/hw6/data/output/output")
 
 ssc.start()
 ssc.awaitTermination()
-# ssc.stop(False)
-
