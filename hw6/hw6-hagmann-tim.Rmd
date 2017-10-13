@@ -32,10 +32,12 @@ knitr::opts_chunk$set(warning=FALSE, message=FALSE,
                       fig.align='center')
 ```
 
+
 ## Problem 1 (20%)
 Lecture notes contain script *network-count.py* in both Spark Streaming APIand Spark Structured Streaming API. Use Linux *nc (NetCat)* utility to demonstrate that scripts work. Run both scripts on your own VM with Spark 2.2 installation. Cloudera VM with Spark 1.6 does not have Spark Structured Streaming API.
 
 First we're starting spark
+
 ```{bash eval=FALSE}
 sudo spark/sbin/start-all.sh
 ```
@@ -70,20 +72,82 @@ Time: 2017-10-11 10:30:48
 As can be seen above, the *network-count.py* script appears to be working.
 
 ## Problem 2 (30%)
-Expand provide *orders.tar.gz* file. Also, download shell scrips *splitAndSend.original.sh* and *splitAndSend.sh* and the Python script *count-buys.py*. 
+Run the following experiments on Cloudera VM. You need HDFS for these programs to run.
 
+### WSL Setup
+A lot of company notebook don't allow running virtual machines (VT-X is disabled). This is also the case in my case. An alternative of using VM is to use the docker image. After installing docker nativily, it is possible to run docker against the WSL engine. This is because Docker can expose a TCP endpoint which the CLI (i.e., WSL) can attach to.
 
-First run *splitAndSend.original.sh* and *count-buys.py*. Record the failure mode of *count-buys.py*. Simply read the error message produced and tell us what is happening.
+**Note:** The TCP endpoint on Windows is turned off by default. To activate it, right-click the Docker icon in your taskbar and choose Settings, and tick the box next to "Expose daemon on tcp://localhost:2375 without TLS".
 
+### Add docker to WSL
+With that done, all we need to do is instruct the CLI under Bash to connect to the engine running under Windows instead of to the non-existing engine running under Bash, like this:
 
 ```{bash eval=FALSE}
-for x in `cd /etc/init.d ; ls hadoop-*`; do sudo service $x status ; done
-#for x in `cd /etc/init.d ; ls hadoop-*`; do sudo service $x start ; done
+echo "export DOCKER_HOST='tcp://0.0.0.0:2375'" >> ~/.bashrc
+source ~/.bashrc
+```
 
+### Install CDH 5.12
+```{bash eval=FALSE}
+docker pull cloudera/quickstart:latest
+```
+
+### Start docker
+```{bash eval=FALSE}
+docker run --hostname=quickstart.cloudera --privileged=true -it --rm -i -t -p 8888:8888 -p 80:80 -p 7180:7180 -p 8080:8080 -p 18080:18080 -p 18081:18081 -p 8020:8020 cloudera/quickstart /usr/bin/docker-quickstart
+```
+
+### Start second docker
+Starting a secon terminal it is possible to login to docker from it. In order to do this we first need the container image id.
+```{bash eval=FALSE}
+# Get id name
+docker ps
 ```
 
 ```text
-[cloudera@quickstart e63]$ for x in `cd /etc/init.d ; ls hadoop-*`; do sudo service $x status ; done
+CONTAINER ID        IMAGE                 COMMAND                  CREATED
+819a984e686f        cloudera/quickstart   "/usr/bin/docker-q..."   2 minutes ago
+
+STATUS              PORTS
+Up 2 minutes        0.0.0.0:80->80/tcp, 0.0.0.0:7180->7180/tcp, 0.0.0.0:8080->8080/tcp, ...
+```
+
+With the above information we an login to docker.
+```{bash eval=FALSE}
+# Login with a second screen
+docker exec -it --user root 4bff53893b88 bash
+```
+
+### Change to cloudera user
+The docker image starts by default into the root user. We're changing to the installed cloudera user (password=cloudera). 
+```{bash eval=FALSE}
+su cloudera
+cd ~
+```
+
+### Setup Image
+```{bash eval=FALSE}
+# Add environment variables
+echo "export JAVA_HOME=/usr/java/jdk1.7.0_67-cloudera" >> /home/cloudera/.bash_profile
+echo "export SPARK_HOME=/usr/lib/spark" >> /home/cloudera/.bash_profile
+echo "export HADOOP_MAPRED_HOME=/usr/lib/hadoop-mapreduce" >> /home/cloudera/.bash_profile
+echo "export PATH=$PATH:$HOME/bin:$JAVA_HOME/bin:$SPARK_HOME/bin" >> /home/cloudera/.bash_profile
+source /home/cloudera/.bash_profile
+```
+
+```{bash eval=FALSE}
+sudo yum install python-pip
+sudo pip install --upgrade pip
+sudo pip install findspark
+```
+
+### Check status
+```{bash eval=FALSE}
+for x in `cd /etc/init.d ; ls hadoop-*`; do sudo service $x status ; done
+```
+
+```text
+[root@quickstart /]# for x in `cd /etc/init.d ; ls hadoop-*`; do sudo service $x status ; done
 Hadoop datanode is running                                 [  OK  ]
 Hadoop journalnode is running                              [  OK  ]
 Hadoop namenode is running                                 [  OK  ]
@@ -91,54 +155,48 @@ Hadoop secondarynamenode is running                        [  OK  ]
 Hadoop httpfs is running                                   [  OK  ]
 Hadoop historyserver is running                            [  OK  ]
 Hadoop nodemanager is running                              [  OK  ]
-Hadoop proxyserver is dead and pid file exists             [FAILED]
+Hadoop proxyserver is not running                          [FAILED]
 Hadoop resourcemanager is running                          [  OK  ]
 ```
+The aboe output shows, that all the necessary hadoop services are up and running. The proxy service is not necessary to run for the following exercices. 
 
-
+### Add data
+Expand provide *orders.tar.gz* file. Also, download shell scrips *splitAndSend.original.sh* and *splitAndSend.sh* and the Python script *count-buys.py*. 
 ```{bash eval=FALSE}
-su cloudera
-cd ~
-vi .bash_profile
-
-export JAVA_HOME=/usr/java/jdk1.7.0_67-cloudera
-export SPARK_HOME=/usr/lib/spark
-export HADOOP_MAPRED_HOME=/usr/lib/hadoop-mapreduce
-export KAFKA_HOME=/usr/lib/kafka
-export PATH=$PATH:$HOME/bin:$JAVA_HOME/bin:$SPARK_HOME/bin:$KAFKA_HOME/bin
-
-source ~/.bash_profile
-
-sudo yum install -y nano
-
 git clone https://github.com/greenore/e63.git
 cd e63
 
 # Untar
 tar xvzf orders.tar.gz 
+```
 
+### Setup hadoop directory structure
+```{bash eval=FALSE}
 # Create 3 directories in hdfs: staging, splits, out/out1
-hadoop fs -mkdir -p staging
-hadoop fs -mkdir -p splits
-hadoop fs -mkdir -p out/out1
+hadoop fs -mkdir -p staging splits out/out1
+hadoop fs -mkdir -p input output
 
-# Empty folders
-hadoop fs -rm -r staging/*
-hadoop fs -rm -r splits/*
-hadoop fs -rm -r out/out1/*
+hadoop fs -ls
+```
 
+```text
+[cloudera@quickstart e63]$ hadoop fs -ls
+Found 3 items
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 07:41 out
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 07:41 splits
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 07:41 staging
+```
+
+### i) Run original code
+First run *splitAndSend.original.sh* and *count-buys.py*. Record the failure mode of *count-buys.py*. Simply read the error message produced and tell us what is happening.
+
+```{bash eval=FALSE}
 # Run scripts
 chmod +x splitAndSend.original.sh
 ./splitAndSend.original.sh splits
 ```
 
 ```{bash eval=FALSE}
-docker exec -it --user root b976b788eac4  bash
-su cloudera
-cd ~
-
-sudo yum install python-pip
-sudo pip install findspark
 spark-submit --master local[4] /home/cloudera/e63/count-buys.py
 ```
 
@@ -170,11 +228,49 @@ SLF4J: Actual binding is of type [org.slf4j.impl.Log4jLoggerFactory]
 Killed
 ```
 
+The SLF4J error can be ignored. However, if the number of standard deviations by which a task's average progress-rates is lower than the average of all running tasks the so called *race condition* is appearing. That means that once one of the two tasks finishes successfully, the other task is killed.
+
+### ii) Eliminate race condition
+Then run script *splitAndSend.sh* and Python program *count-buys.py* and tell us what the results are. In both cases show use contents of your HDFS directories input, output and staging. The second script *splitAndSend.sh* is supposed to reduce or eliminate the race condition.  You might want to rename HDFS directory output from the first run in order to preserve its content. In both cases, show the partial contents of your HDFS directories *input*, *output* and *staging*. 
+ 
+### Empty folders
 ```{bash eval=FALSE}
-# Show content
+# Empty folders
+hadoop fs -rm -r staging/*
+hadoop fs -rm -r splits/*
+hadoop fs -rm -r out/out1/*
+hadoop fs -rm -r output/*
+hadoop fs -rm -r input/*
+```
+
+### Run scripts
+```{bash eval=FALSE}
+# Run scripts
+chmod +x splitAndSend.sh
+./splitAndSend.sh input
+```
+
+```{bash eval=FALSE}
+spark-submit --master local[2] /home/cloudera/e63/count-buys.py
+```
+
+### Delete files
+```{bash eval=FALSE}
+hadoop fs -rm -r staging/* splits/* out/out1/*
+```
+
+### Show content
+```{bash eval=FALSE}
 hadoop fs -ls staging
+```
+
+```text
+Found 1 items
+-rw-r--r--   1 cloudera cloudera     458673 2017-10-13 08:34 staging/chunkbh
+```
+
+```{bash eval=FALSE}
 hadoop fs -ls splits
-hadoop fs -ls out/out1
 ```
 ```text
 [cloudera@quickstart sbin]$ hadoop fs -ls splits
@@ -231,50 +327,56 @@ Found 50 items
 -rw-r--r--   1 cloudera cloudera     458503 2017-10-12 12:57 splits/chunkbx
 ```
 
-Then run script *splitAndSend.sh* and Python program *count-buys.py* and tell us what the results are. In both cases show use contents of your HDFS directories input, output and staging. The second script *splitAndSend.sh* is supposed to reduce or eliminate the race condition.  You might want to rename HDFS directory output from the first run in order to preserve its content.
-
 ```{bash eval=FALSE}
-# Run scripts
-chmod +x splitAndSend.sh
-# Empty folders
-hadoop fs -rm -r staging/*
-hadoop fs -rm -r splits/*
-hadoop fs -rm -r out/out1/*
-./splitAndSend.sh splits
+hadoop fs -ls -R output
 ```
 
-```{bash eval=FALSE}
-spark-submit --master local[4] /home/cloudera/e63/count-buys.py
+```text
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883746000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883746000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 08:36 output/output-1507883746000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883749000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera         22 2017-10-13 08:36 output/output-1507883749000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 08:36 output/output-1507883749000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883752000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883752000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 08:36 output/output-1507883752000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883755000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera         20 2017-10-13 08:36 output/output-1507883755000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 08:36 output/output-1507883755000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883758000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883758000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 08:36 output/output-1507883758000.txt
+-rw-r--r--   1 cloudera cloudera         21 2017-10-13 08:36 output/output-1507883761000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883761000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 08:36 output/output-1507883761000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883764000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera         20 2017-10-13 08:36 output/output-1507883764000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 08:36 output/output-1507883764000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883767000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera         21 2017-10-13 08:36 output/output-1507883767000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 08:36 output/output-1507883767000.txt
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883777000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera          0 2017-10-13 08:36 output/output-1507883777000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera          0 2017-10-13 08:36 output/output-1507883777000.txt
 ```
 
-
-In both cases, show the partial contents of your HDFS directories *input*, *output* and *staging*. In the second run, locate an output file named *part-00000* that is not empty and show its content to us.  Run these experiments on Cloudera VM. You need HDFS for these programs to run.
-
+In the second run, locate an output file named *part-00000* that is not empty and show its content to us.  
 
 ```{bash eval=FALSE}
-# Show content
-hadoop fs -ls staging
-hadoop fs -ls splits
-hadoop fs -ls out/out1
-
-
-# Create 3 directories in hdfs: staging, splits, out/out1
-hadoop fs -mkdir -p input
-hadoop fs -mkdir -p output
-
-
-hadoop fs -ls input
-hadoop fs -ls splits
-hadoop fs -ls output
-
-
+hadoop fs -cat output/output-1507883755000.txt/part-00000
 ```
+
 ## Problem 3 (10%)
 In the second run of the previous problem you will notice that many of part-00000 files in your output directory are empty. Could you explain why.
 (10%)
 
 ## Problem 4 (20%)
 Could you rewrite count-buys.sh in Spark Structured Streaming API. If you do that change script splitAndSend.sh to move generated chunks from the local files system directory staging to local file system directory input. Run this experiment on your VM with Spark 2.2.
+
+```{bash eval=FALSE}
+bash scripts/splitAndSend.sh data/input local
+```
 
 ## Problem 5 (20%)
 Examine provided Python program stateful_wordcount.py. Make it work as is. If there are errors on the code, fix them. Modify the code so that it outputs the number of words starting with letters a and b. Demonstrate that modified program work. You should provide several both positive and negative examples.

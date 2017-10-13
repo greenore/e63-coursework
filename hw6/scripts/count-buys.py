@@ -1,9 +1,10 @@
 from __future__ import print_function
 from pyspark import SparkContext
 from pyspark.streaming import StreamingContext
-sc = SparkContext(appName="SparkStreamingCountBuys") 
-ssc = StreamingContext(sc, 9)
-filestream = ssc.textFileStream("hdfs:///user/cloudera/input")
+
+# sc = SparkContext(appName="SparkStreamingCountBuys") 
+# ssc = StreamingContext(sc, 9)
+filestream = ssc.textFileStream("hdfs://quickstart.cloudera:8020/user/cloudera/input")
 
 from datetime import datetime
 def parseOrder(line):
@@ -21,7 +22,7 @@ orders = filestream.flatMap(parseOrder)
 from operator import add
 numPerType = orders.map(lambda o: (o['buy'], 1L)).reduceByKey(add)
 
-numPerType.repartition(1).saveAsTextFiles("hdfs:///user/cloudera/output/output", "txt")
+numPerType.repartition(1).saveAsTextFiles("hdfs://quickstart.cloudera:8020/user/cloudera/output/output", "txt")
 
 ssc.start()
 ssc.awaitTermination()
