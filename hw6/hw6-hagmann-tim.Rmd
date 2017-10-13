@@ -34,9 +34,12 @@ knitr::opts_chunk$set(warning=FALSE, message=FALSE,
 
 
 ## Problem 1 (20%)
-Lecture notes contain script *network-count.py* in both Spark Streaming APIand Spark Structured Streaming API. Use Linux *nc (NetCat)* utility to demonstrate that scripts work. Run both scripts on your own VM with Spark 2.2 installation. Cloudera VM with Spark 1.6 does not have Spark Structured Streaming API.
+Lecture notes contain script *network-count.py* in both Spark Streaming API and Spark Structured Streaming API. Use Linux *nc (NetCat)* utility to demonstrate that scripts work. Run both scripts on your own VM with Spark 2.2 installation. Cloudera VM with Spark 1.6 does not have Spark Structured Streaming API.
 
-First we're starting spark
+**Note:** We're running Problem 1, 4 and 5 on the same EC2 instance as in HW3 (See HW3 for the setup instructions). Problem 2 and 3 are run on the cloudera quickstart docker images. The setup instructions can be found in P2. 
+
+### i) Spark Streaming API
+First we're starting spark. 
 
 ```{bash eval=FALSE}
 sudo spark/sbin/start-all.sh
@@ -45,14 +48,15 @@ sudo spark/sbin/start-all.sh
 starting org.apache.spark.deploy.master.Master, logging to /home/tim/spark/logs/spark-root-org.apache.spark.deploy.master.Master-1-ip-172-31-24-35.out
 localhost: starting org.apache.spark.deploy.worker.Worker, logging to /home/tim/spark/logs/spark-root-org.apache.spark.deploy.worker.Worker-1-ip-172-31-24-35.out
 ```
-
 Next we're running the *network-count.py* in one window and the *nc -lk 9999* and typing *abc* in another window gives the following result:
+
 ```{bash eval=FALSE}
 nc -lk 9999 
 spark-submit --master local[4] /home/tim/e63-coursework/hw6/scripts/network-count.py localhost 9999
 ```
 
 #### Netcat server
+In the *NetCat* server we can input again the following text: 
 ```text
 tim@ip-172-31-24-35:~/e63-coursework/hw6/data$ nc -lk 9999
 hello world
@@ -62,6 +66,7 @@ talking to the world
 ```
 
 #### Network count
+The network count produces with the above input the following output:
 ```text
 -------------------------------------------
 Time: 2017-10-13 14:46:45
@@ -88,16 +93,16 @@ Time: 2017-10-13 14:46:51
 
 -------
 ```
+As can be seen above, the *network-count.py* script appears to be working. It correctly counts the *hello world* line as well as the other two lines.
 
-As can be seen above, the *network-count.py* script appears to be working. Next we're moving to the *network-count-structured.py*.
-
+### ii) Spark Structured Streaming API
+In order to run on the *Spark Structured Streaming API* we have to use the *network-count-structured.py*. The *NetCat* server is still running, that means we don't have to start it again. 
 ```{bash eval=FALSE}
-nc -lk 9999 
 spark-submit --master local[4] /home/tim/e63-coursework/hw6/scripts/network-count-structured.py localhost 9999
 ```
 
-
 #### Netcat server
+In the *NetCat* server we can input again the same text as seen above. 
 ```text
 tim@ip-172-31-24-35:~/e63-coursework/hw6/data$ nc -lk 9999
 hello world
@@ -107,6 +112,7 @@ talking to the world
 ```
 
 #### Network count structured
+The network count produces with the above input the following output:
 ```text
 tim@ip-172-31-24-35:~/e63-coursework$ spark-submit --master local[4] /home/tim/e63-coursework/hw6/script 
 s/network-count-structured.py localhost 9999
@@ -195,17 +201,17 @@ Batch: 2
 +-------+-----+
 ```
 
-The *network-count-structured.py* is also working. 
+The *network-count-structured.py* is also working. It is running in batches and splits the analysis before giving the final output in *batch 2*.
 
 ## Problem 2 (30%)
 Run the following experiments on Cloudera VM. You need HDFS for these programs to run.
 
-### WSL Setup
+### i) WSL Setup
 A lot of company notebook don't allow running virtual machines (VT-X is disabled). This is also the case in my case. An alternative of using VM is to use the docker image. After installing docker nativily, it is possible to run docker against the WSL engine. This is because Docker can expose a TCP endpoint which the CLI (i.e., WSL) can attach to.
 
 **Note:** The TCP endpoint on Windows is turned off by default. To activate it, right-click the Docker icon in your taskbar and choose Settings, and tick the box next to "Expose daemon on tcp://localhost:2375 without TLS".
 
-### Add docker to WSL
+#### Add docker to WSL
 With that done, all we need to do is instruct the CLI under Bash to connect to the engine running under Windows instead of to the non-existing engine running under Bash, like this:
 
 ```{bash eval=FALSE}
@@ -213,17 +219,17 @@ echo "export DOCKER_HOST='tcp://0.0.0.0:2375'" >> ~/.bashrc
 source ~/.bashrc
 ```
 
-### Install CDH 5.12
+#### Install CDH 5.12
 ```{bash eval=FALSE}
 docker pull cloudera/quickstart:latest
 ```
 
-### Start docker
+### ii) Start docker
 ```{bash eval=FALSE}
 docker run --hostname=quickstart.cloudera --privileged=true -it --rm -i -t -p 8888:8888 -p 80:80 -p 7180:7180 -p 8080:8080 -p 18080:18080 -p 18081:18081 -p 8020:8020 cloudera/quickstart /usr/bin/docker-quickstart
 ```
 
-### Start second docker
+#### Start second docker
 Starting a secon terminal it is possible to login to docker from it. In order to do this we first need the container image id.
 ```{bash eval=FALSE}
 # Get id name
@@ -244,14 +250,14 @@ With the above information we an login to docker.
 docker exec -it --user root 4bff53893b88 bash
 ```
 
-### Change to cloudera user
+#### Change to cloudera user
 The docker image starts by default into the root user. We're changing to the installed cloudera user (password=cloudera). 
 ```{bash eval=FALSE}
 su cloudera
 cd ~
 ```
 
-### Setup Image
+### iii) Setup Image
 ```{bash eval=FALSE}
 # Add environment variables
 echo "export JAVA_HOME=/usr/java/jdk1.7.0_67-cloudera" >> /home/cloudera/.bash_profile
@@ -288,7 +294,7 @@ sudo vi /usr/lib/spark/conf/log4j.properties
 sudo /usr/lib/spark/sbin/start-all.sh
 ```
 
-### Check status
+#### Check status
 ```{bash eval=FALSE}
 for x in `cd /etc/init.d ; ls hadoop-*`; do sudo service $x status ; done
 ```
@@ -307,7 +313,7 @@ Hadoop resourcemanager is running                          [  OK  ]
 ```
 The above output shows, that all the necessary hadoop services are up and running. The proxy service is not necessary to run for the following exercices. 
 
-### Add data
+### iv) Add data
 Expand provide *orders.tar.gz* file. Also, download shell scrips *splitAndSend.original.sh* and *splitAndSend.sh* and the Python script *count-buys.py*. 
 ```{bash eval=FALSE}
 git clone https://github.com/greenore/e63.git
@@ -317,7 +323,7 @@ cd e63
 tar xvzf orders.tar.gz 
 ```
 
-### Setup hadoop directory structure
+#### Setup hadoop directory structure
 ```{bash eval=FALSE}
 # Create 3 directories in hdfs: staging, splits, out/out1
 hadoop fs -mkdir -p staging input output
@@ -333,7 +339,7 @@ drwxr-xr-x   - cloudera cloudera          0 2017-10-13 07:41 input
 drwxr-xr-x   - cloudera cloudera          0 2017-10-13 07:41 output
 ```
 
-### i) Run original code
+### v) SplitAndSend Original
 First run *splitAndSend.original.sh* and *count-buys.py*. Record the failure mode of *count-buys.py*. Simply read the error message produced and tell us what is happening.
 
 ```{bash eval=FALSE}
@@ -385,10 +391,10 @@ py4j.Py4JException: An exception was raised by the Python Proxy. Return Message:
 
 The SLF4J error can be ignored. However, if the number of standard deviations by which a task's average progress-rates is lower than the average of all running tasks the so called *race condition* is appearing. That means that by copying directly from the local file system to the hadoop *input* directory, there are cases where Spark tries to read the file just after it's name was changes. This leads to files named chunkaa._COPYING_". When the file is finished copying, the extension is changed. If Spark now sees the new temp file and then tries to read it just after its name was changed, it causes a *file not found error* and the scripts exits. That means that once one of the two tasks finishes successfully, the other task is killed.
 
-### ii) Eliminate race condition
+### vi) Eliminate race condition
 Then run script *splitAndSend.sh* and Python program *count-buys.py* and tell us what the results are. In both cases show use contents of your HDFS directories input, output and staging. The second script *splitAndSend.sh* is supposed to reduce or eliminate the race condition.  In both cases, show the partial contents of your HDFS directories *input*, *output* and *staging*. 
 
-### Empty folders
+#### Empty folders
 ```{bash eval=FALSE}
 # Empty folders
 hadoop fs -rm -r staging/*
@@ -396,7 +402,7 @@ hadoop fs -rm -r output/*
 hadoop fs -rm -r input/*
 ```
 
-### Run scripts
+#### Run scripts
 ```{bash eval=FALSE}
 # Run scripts
 chmod +x splitAndSend.sh
@@ -407,7 +413,7 @@ chmod +x splitAndSend.sh
 spark-submit --master local[4] /home/cloudera/e63/count-buys.py
 ```
 
-### Show content
+#### Show content
 ```{bash eval=FALSE}
 hadoop fs -ls staging
 ```
@@ -509,6 +515,7 @@ drwxr-xr-x   - cloudera cloudera          0 2017-10-13 08:36 output/output-15078
 drwxr-xr-x   - cloudera cloudera          0 2017-10-13 08:36 output/output-1507883777000.txt
 ```
 
+#### Show part-00000
 In the second run, locate an output file named *part-00000* that is not empty and show its content to us.  
 
 ```{bash eval=FALSE}
