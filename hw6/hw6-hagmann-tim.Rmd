@@ -5,7 +5,7 @@ author: "Tim Hagmann"
 date: '`r format(Sys.Date(), "%B %d, %Y")`'
 output:
   pdf_document:
-    toc: yes
+    toc: no
   html_document:
     css: css/styles.css
     highlight: tango
@@ -32,30 +32,35 @@ knitr::opts_chunk$set(warning=FALSE, message=FALSE,
                       fig.align='center')
 ```
 
+# Problem 1 (20%)
+**Question:** Lecture notes contain script *network-count.py* in both Spark Streaming API and Spark Structured Streaming API. Use Linux *nc (NetCat)* utility to demonstrate that scripts work. Run both scripts on your own VM with Spark 2.2 installation. Cloudera VM with Spark 1.6 does not have Spark Structured Streaming API.
 
-## Problem 1 (20%)
-Lecture notes contain script *network-count.py* in both Spark Streaming API and Spark Structured Streaming API. Use Linux *nc (NetCat)* utility to demonstrate that scripts work. Run both scripts on your own VM with Spark 2.2 installation. Cloudera VM with Spark 1.6 does not have Spark Structured Streaming API.
+**Note:** I'm running problem 1, 4 and 5 on the same EC2 instance as in HW3 (see HW3 for the setup instructions). Problem 2 and 3 are run on the cloudera quickstart docker images. The setup instructions can be found inside problem 2. 
 
-**Note:** We're running Problem 1, 4 and 5 on the same EC2 instance as in HW3 (See HW3 for the setup instructions). Problem 2 and 3 are run on the cloudera quickstart docker images. The setup instructions can be found in P2. 
-
-### i) Spark Streaming API
-First we're starting spark. 
+## i) Spark Streaming API
+Before beeing able to work with the *network-count.py* we have to start spark. 
 
 ```{bash eval=FALSE}
 sudo spark/sbin/start-all.sh
 ```
 ```text
-starting org.apache.spark.deploy.master.Master, logging to /home/tim/spark/logs/spark-root-org.apache.spark.deploy.master.Master-1-ip-172-31-24-35.out
-localhost: starting org.apache.spark.deploy.worker.Worker, logging to /home/tim/spark/logs/spark-root-org.apache.spark.deploy.worker.Worker-1-ip-172-31-24-35.out
+starting org.apache.spark.deploy.master.Master, logging to 
+/home/tim/spark/logs/spark-root-org.apache.spark.deploy.master.Master-1-ip-172-31-24-35.out
+localhost: starting org.apache.spark.deploy.worker.Worker, logging to 
+/home/tim/spark/logs/spark-root-org.apache.spark.deploy.worker.Worker-1-ip-172-31-24-35.out
 ```
-Next we're running the *network-count.py* in one window and the *nc -lk 9999* and typing *abc* in another window gives the following result:
+Next we're running the *network-count.py* in one window and the *nc -lk 9999* in another window. Inside the *NetCat* Server we can type interactivily while the *network-count.py* performs a count. 
 
 ```{bash eval=FALSE}
+# Netcat server
 nc -lk 9999 
-spark-submit --master local[4] /home/tim/e63-coursework/hw6/scripts/network-count.py localhost 9999
+
+# Network count
+spark-submit --master local[4] \
+/home/tim/e63-coursework/hw6/scripts/network-count.py localhost 9999
 ```
 
-#### Netcat server
+### Netcat server
 In the *NetCat* server we can input again the following text: 
 ```text
 tim@ip-172-31-24-35:~/e63-coursework/hw6/data$ nc -lk 9999
@@ -65,7 +70,7 @@ this is a test
 talking to the world
 ```
 
-#### Network count
+### Network count
 The network count produces with the above input the following output:
 ```text
 -------------------------------------------
@@ -95,13 +100,14 @@ Time: 2017-10-13 14:46:51
 ```
 As can be seen above, the *network-count.py* script appears to be working. It correctly counts the *hello world* line as well as the other two lines.
 
-### ii) Spark Structured Streaming API
+## ii) Spark Structured Streaming API
 In order to run on the *Spark Structured Streaming API* we have to use the *network-count-structured.py*. The *NetCat* server is still running, that means we don't have to start it again. 
 ```{bash eval=FALSE}
-spark-submit --master local[4] /home/tim/e63-coursework/hw6/scripts/network-count-structured.py localhost 9999
+spark-submit --master local[4] \
+/home/tim/e63-coursework/hw6/scripts/network-count-structured.py localhost 9999
 ```
 
-#### Netcat server
+### Netcat server
 In the *NetCat* server we can input again the same text as seen above. 
 ```text
 tim@ip-172-31-24-35:~/e63-coursework/hw6/data$ nc -lk 9999
@@ -111,11 +117,11 @@ this is a test
 talking to the world
 ```
 
-#### Network count structured
+### Network count structured
 The network count produces with the above input the following output:
 ```text
-tim@ip-172-31-24-35:~/e63-coursework$ spark-submit --master local[4] /home/tim/e63-coursework/hw6/script 
-s/network-count-structured.py localhost 9999
+tim@ip-172-31-24-35:~/e63-coursework$ spark-submit --master local[4]
+/home/tim/e63-coursework/hw6/scripts/network-count-structured.py localhost 9999
 -------------------------------------------
 Batch: 0
 -------------------------------------------
@@ -201,17 +207,17 @@ Batch: 2
 +-------+-----+
 ```
 
-The *network-count-structured.py* is also working. It is running in batches and splits the analysis before giving us the final output in *batch 2*.
+The *network-count-structured.py* is also working. It is running in batches and splits the analysis.
 
-## Problem 2 (30%)
-Run the following experiments on Cloudera VM. You need HDFS for these programs to run.
+# Problem 2 (30%)
+**Question:** Run the following experiments on Cloudera VM. You need HDFS for these programs to run.
 
-### i) WSL Setup
-A lot of company notebook don't allow running virtual machines (VT-X is disabled). This is also the case in my case. An alternative of using VM is to use the docker image. After installing docker nativily, it is possible to run docker against the WSL engine. This is because Docker can expose a TCP endpoint which the CLI (i.e., WSL) can attach to.
+## i) WSL Setup (optional)
+A lot of company notebook don't allow running virtual machines (*VT-X* is disabled). This is also the case with my notebook. An alternative of using VM is to use *docker*. After installing docker nativily, it is possible to run docker against the *WSL* engine (Windows Subsystem for Linux). This is because Docker can expose a TCP endpoint which the CLI (i.e., WSL) can attach to. This step is optional. On a *Mac* or *Linux* machine docker can be nativily called from the shell.
 
 **Note:** The TCP endpoint on Windows is turned off by default. To activate it, right-click the Docker icon in your taskbar and choose Settings, and tick the box next to "Expose daemon on tcp://localhost:2375 without TLS".
 
-#### Add docker to WSL
+### Add docker to WSL (optional)
 With that done, all we need to do is instruct the CLI under Bash to connect to the engine running under Windows instead of to the non-existing engine running under Bash, like this:
 
 ```{bash eval=FALSE}
@@ -219,17 +225,21 @@ echo "export DOCKER_HOST='tcp://0.0.0.0:2375'" >> ~/.bashrc
 source ~/.bashrc
 ```
 
-### ii) Docker setup
+## ii) Docker setup
+The docker image can be pulled directly from the shell.
 ```{bash eval=FALSE}
 # Install CDH 5.12
 docker pull cloudera/quickstart:latest
 
 # Start docker
-docker run --hostname=quickstart.cloudera --privileged=true -it --rm -i -t -p 8888:8888 -p 80:80 -p 7180:7180 -p 7077:7077 -p 7078:7078 -p 8080:8080 -p 18080:18080 -p 18081:18081 -p 8020:8020 cloudera/quickstart /usr/bin/docker-quickstart
+docker run --hostname=quickstart.cloudera --privileged=true -it --rm -i -t -p \
+8888:8888 -p 80:80 -p 7180:7180 -p 7077:7077 -p 7078:7078 -p 8080:8080 -p \
+18080:18080 -p 18081:18081 -p 8020:8020 cloudera/quickstart \
+/usr/bin/docker-quickstart
 ```
 
-#### Start second docker
-Starting a secon terminal it is possible to login to docker from it. In order to do this we first need the container image id.
+### Start second docker
+It is possible to start a multitute of sessions. In order to perform the following analysis a second terminal window has to be started. However, in order to login we first need container image id.
 ```{bash eval=FALSE}
 # Get id name
 docker ps
@@ -237,47 +247,48 @@ docker ps
 
 ```text
 CONTAINER ID        IMAGE                 COMMAND                  CREATED
-4b36e5f065e3        cloudera/quickstart   "/usr/bin/docker-q..."   2 minutes ago
+9cacc524be9f        cloudera/quickstart   "/usr/bin/docker-q..."   2 minutes ago
 
 STATUS              PORTS
 Up 2 minutes        0.0.0.0:80->80/tcp, 0.0.0.0:7180->7180/tcp, 0.0.0.0:8080->8080/tcp, ...
 ```
 
-With the above information we an login to docker.
+With the above information we can login to docker.
 ```{bash eval=FALSE}
 # Login with a second screen
-docker exec -it --user root 4b36e5f065e3 bash
+docker exec -it --user root 9cacc524be9f bash
 ```
 
-#### Change to cloudera user
+### Change to cloudera user
 The docker image starts by default into the root user. We're changing to the installed cloudera user (password=cloudera). 
 ```{bash eval=FALSE}
 su cloudera
 cd ~
 ```
 
-### iii) Setup Image
-Before beeing able to start with the analysis we have to setupt the docker environment variables.
+## iii) Setup Image
+Before beeing able to start with the analysis we have to setup the docker environment variables.
 ```{bash eval=FALSE}
 # Add environment variables
 echo "export JAVA_HOME=/usr/java/jdk1.7.0_67-cloudera" >> /home/cloudera/.bash_profile
 echo "export SPARK_HOME=/usr/lib/spark" >> /home/cloudera/.bash_profile
 echo "export HADOOP_MAPRED_HOME=/usr/lib/hadoop-mapreduce" >> /home/cloudera/.bash_profile
-echo "export PATH=$PATH:$HOME/bin:$JAVA_HOME/bin:$SPARK_HOME/bin" >> /home/cloudera/.bash_profile
+echo "export PATH=$PATH:$HOME/bin:$JAVA_HOME/bin:$SPARK_HOME/bin" >>
+/home/cloudera/.bash_profile
+
+# Source file
 source /home/cloudera/.bash_profile
 ```
 
 Next we're installing *pip* and *findspark*.
-
 ```{bash eval=FALSE}
 sudo yum install python-pip
 sudo pip install --upgrade pip
 sudo pip install findspark
 ```
 
-#### Modify log4j.properties
-In order to eliminate the error messages in the **spark-shell**, we have to create the log4j.properties file from the template file and setting the log level to ERROR and log4j.rootCategory=ERROR.
-
+### Modify log4j.properties
+In order to eliminate the error messages in the *spark-shell*, we have to create the *log4j.properties* file from the template file and setting the log level to *ERROR* and *log4j.rootCategory=ERROR*.
 ```{bash eval=FALSE}
 # Create log4j.properties
 sudo mv /usr/lib/spark/conf/log4j.properties.template /usr/lib/spark/conf/log4j.properties
@@ -291,18 +302,21 @@ sudo vi /usr/lib/spark/conf/log4j.properties
 :wq
 ```
 
-#### Start spark
+### Start spark
+Next we have to start spark on the machine. The option *localhost[2]* indicates that 2 threads are beeing used.  
 ```{bash eval=FALSE}
 sudo /usr/lib/spark/sbin/start-all.sh --host localhost[2]
 ```
 
-#### Check status
+### Check status
+For the following step we're checking if all the necessary *hadoop* services are running.
 ```{bash eval=FALSE}
 for x in `cd /etc/init.d ; ls hadoop-*`; do sudo service $x status ; done
 ```
 
 ```text
-[root@quickstart /]# for x in `cd /etc/init.d ; ls hadoop-*`; do sudo service $x status ; done
+[root@quickstart /]# for x in `cd /etc/init.d ; ls hadoop-*`; do sudo service $x
+status ; done
 Hadoop datanode is running                                 [  OK  ]
 Hadoop journalnode is running                              [  OK  ]
 Hadoop namenode is running                                 [  OK  ]
@@ -315,8 +329,8 @@ Hadoop resourcemanager is running                          [  OK  ]
 ```
 The above output shows, that all the necessary hadoop services are up and running. The proxy service is not necessary to run for the following exercices. 
 
-### iv) Get data
-Expand provide *orders.tar.gz* file. Also, download shell scrips *splitAndSend.original.sh* and *splitAndSend.sh* and the Python script *count-buys.py*. 
+## iv) Get data
+**Question:** Expand provide *orders.tar.gz* file. Also, download shell scrips *splitAndSend.original.sh* and *splitAndSend.sh* and the Python script *count-buys.py*. 
 ```{bash eval=FALSE}
 git clone https://github.com/greenore/e63.git
 cd e63
@@ -325,9 +339,10 @@ cd e63
 tar xvzf orders.tar.gz 
 ```
 
-#### Setup hadoop directory structure
+### Setup hadoop directory structure
+In order for the above scripts to work, we have to create the necessary directories inside the *HDFS*.
 ```{bash eval=FALSE}
-# Create 3 directories in hdfs: staging, splits, out/out1
+# Create 3 directories in hdfs
 hadoop fs -mkdir -p staging input output
 
 hadoop fs -ls
@@ -341,8 +356,8 @@ drwxr-xr-x   - cloudera cloudera          0 2017-10-13 07:41 input
 drwxr-xr-x   - cloudera cloudera          0 2017-10-13 07:41 output
 ```
 
-### v) SplitAndSend Original
-First run *splitAndSend.original.sh* and *count-buys.py*. Record the failure mode of *count-buys.py*. Simply read the error message produced and tell us what is happening.
+## v) SplitAndSend Original
+**Question:** First run *splitAndSend.original.sh* and *count-buys.py*. Record the failure mode of *count-buys.py*. Simply read the error message produced and tell us what is happening.
 
 ```{bash eval=FALSE}
 # Run scripts
@@ -357,14 +372,35 @@ spark-submit --master local[2] /home/cloudera/e63/count-buys.py
 ```text
 [cloudera@quickstart ~]$ spark-submit --master local[2] /home/cloudera/e63/count-buys.py
 SLF4J: Class path contains multiple SLF4J bindings.
-SLF4J: Found binding in [jar:file:/usr/lib/zookeeper/lib/slf4j-log4j12-1.7.5.jar!/org/slf4j/impl/StaticLoggerBinder.class]
-SLF4J: Found binding in [jar:file:/usr/jars/slf4j-log4j12-1.7.5.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: Found binding in [jar:file:/usr/lib/zookeeper/lib/slf4j-log4j12-1.7.5.jar!/org/slf4j/impl/
+StaticLoggerBinder.class]
+SLF4J: Found binding in [jar:file:/usr/jars/slf4j-log4j12-1.7.5.jar!/org/slf4j/impl/
+StaticLoggerBinder.class]
 SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
 SLF4J: Actual binding is of type [org.slf4j.impl.Log4jLoggerFactory]
 Killed
 ```
 
-#### Show content
+The SLF4J error can be ignored. However, the process is beeing killed. In order to understand why, let us look at the content of the different folders. 
+
+### Show content
+```{bash eval=FALSE}
+hadoop fs -ls output
+```
+
+```text
+[cloudera@quickstart e63]$ hadoop fs -ls output
+Found 16 items
+drwxr-xr-x   - cloudera cloudera    0 2017-10-13 21:06 output/output-1507930326000.txt
+drwxr-xr-x   - cloudera cloudera    0 2017-10-13 21:06 output/output-1507930329000.txt
+drwxr-xr-x   - cloudera cloudera    0 2017-10-13 21:06 output/output-1507930332000.txt
+drwxr-xr-x   - cloudera cloudera    0 2017-10-13 21:06 output/output-1507930335000.txt
+drwxr-xr-x   - cloudera cloudera    0 2017-10-13 21:06 output/output-1507930338000.txt
+drwxr-xr-x   - cloudera cloudera    0 2017-10-13 21:06 output/output-1507930341000.txt
+...
+```
+The output folder look good. There are different files inside the *HDFS*. Next we're looking at the staging folder.
+
 ```{bash eval=FALSE}
 hadoop fs -ls staging
 ```
@@ -372,7 +408,7 @@ hadoop fs -ls staging
 ```text
 [cloudera@quickstart ~]$ hadoop fs -ls staging
 ```
-The is nothing in the staging folder.
+As expected, there is nothing in the staging folder. The next step is to look at the input folder.
 
 ```{bash eval=FALSE}
 hadoop fs -ls input
@@ -393,29 +429,15 @@ Found 12 items
 -rw-r--r--   1 cloudera cloudera     458580 2017-10-13 21:08 input/chunkal
 -rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:08 input/chunkam._COPYING_
 ```
+There is a chunkam._COPYING file inside the input folder. That means that by copying directly from the local file system to the hadoop *input* directory, there are cases where Spark tries to read the file just after it's name was changes. This leads to files named chunkam._COPYING. When the file is finished copying, the extension is changed. If Spark now sees the new temp file and then tries to read it just after its name was changed, it causes a *file not found* error and the scripts exits. That means that once one of the two tasks finishes successfully, the other task is killed. This is a case of the so called *race condition*.
 
-```{bash eval=FALSE}
-hadoop fs -ls output
-```
+## vi) Eliminate race condition
+**Question:** Then run script *splitAndSend.sh* and Python program *count-buys.py* and tell us what the results are. In both cases show use contents of your HDFS directories input, output and staging. The second script *splitAndSend.sh* is supposed to reduce or eliminate the race condition.
 
-```text
-[cloudera@quickstart e63]$ hadoop fs -ls output
-Found 16 items
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:06 output/output-1507930326000.txt
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:06 output/output-1507930329000.txt
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:06 output/output-1507930332000.txt
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:06 output/output-1507930335000.txt
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:06 output/output-1507930338000.txt
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:06 output/output-1507930341000.txt
-...
-```
+The problem of the race condition can be fixed by staging files instead of moving theme directly into the input directory. The command *hadoop fs -mv staging/$f input* creates an atomic file that solves the race condition. The problem can also be decreased when inserting a 1 second delay.
 
-The SLF4J error can be ignored. The output files also look good. However, if the number of standard deviations by which a task's average progress-rates is lower than the average of all running tasks the so called *race condition* is appearing. That means that by copying directly from the local file system to the hadoop *input* directory, there are cases where Spark tries to read the file just after it's name was changes. This leads to files named chunkaa._COPYING_". When the file is finished copying, the extension is changed. If Spark now sees the new temp file and then tries to read it just after its name was changed, it causes a *file not found error* and the scripts exits. That means that once one of the two tasks finishes successfully, the other task is killed.
-
-### vi) Eliminate race condition
-Then run script *splitAndSend.sh* and Python program *count-buys.py* and tell us what the results are. In both cases show use contents of your HDFS directories input, output and staging. The second script *splitAndSend.sh* is supposed to reduce or eliminate the race condition.
-
-#### Empty folders
+### Empty folders
+First we're empty the HDFS folders.  
 ```{bash eval=FALSE}
 # Empty folders
 hadoop fs -rm -r staging/*
@@ -423,7 +445,8 @@ hadoop fs -rm -r output/*
 hadoop fs -rm -r input/*
 ```
 
-#### Run scripts
+### Run scripts
+Next we can run the *splitAndSend.sh* script with the adopted changes described above. 
 ```{bash eval=FALSE}
 # Run scripts
 chmod +x splitAndSend.sh
@@ -434,7 +457,7 @@ chmod +x splitAndSend.sh
 spark-submit --master local[2] /home/cloudera/e63/count-buys.py
 ```
 
-#### Show content
+### Show content
 ```{bash eval=FALSE}
 hadoop fs -ls staging
 ```
@@ -444,6 +467,8 @@ hadoop fs -ls staging
 Found 1 items
 -rw-r--r--   1 cloudera cloudera     448564 2017-10-13 21:13 staging/chunkaj
 ```
+
+The staging folder now holds 1 file before moving. 
 
 ```{bash eval=FALSE}
 hadoop fs -ls input
@@ -464,6 +489,7 @@ Found 12 items
 -rw-r--r--   1 cloudera cloudera     458595 2017-10-13 21:13 input/chunkak
 -rw-r--r--   1 cloudera cloudera     458580 2017-10-13 21:14 input/chunkal
 ```
+The input folder looks good. 
 
 ```{bash eval=FALSE}
 hadoop fs -ls -R output
@@ -471,122 +497,39 @@ hadoop fs -ls -R output
 
 ```text
 [cloudera@quickstart ~]$ hadoop fs -ls -R output
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:12 output/output-1507929150000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929150000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929150000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:12 output/output-1507929153000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929153000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929153000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:12 output/output-1507929156000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929156000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929156000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:12 output/output-1507929159000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929159000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera         29 2017-10-13 21:12 output/output-1507929159000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:12 output/output-1507929162000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929162000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929162000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:12 output/output-1507929165000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929165000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929165000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:12 output/output-1507929168000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929168000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera         29 2017-10-13 21:12 output/output-1507929168000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:12 output/output-1507929171000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929171000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929171000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:12 output/output-1507929174000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929174000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929174000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:12 output/output-1507929177000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:12 output/output-1507929177000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera         29 2017-10-13 21:12 output/output-1507929177000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929180000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929180000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929180000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929183000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929183000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929183000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929186000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929186000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera         29 2017-10-13 21:13 output/output-1507929186000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929189000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929189000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929189000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929192000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929192000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929192000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929195000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929195000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929195000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929198000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929198000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera         29 2017-10-13 21:13 output/output-1507929198000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929201000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929201000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929201000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929204000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929204000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929204000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929207000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929207000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera         29 2017-10-13 21:13 output/output-1507929207000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929210000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929210000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929210000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929213000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929213000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929213000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929216000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929216000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929216000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929219000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929219000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929219000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929222000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929222000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929222000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929225000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929225000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929225000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929228000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929228000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929228000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929231000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929231000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929231000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929234000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929234000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera         29 2017-10-13 21:13 output/output-1507929234000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:13 output/output-1507929237000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929237000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:13 output/output-1507929237000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:14 output/output-1507929240000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929240000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929240000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:14 output/output-1507929243000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929243000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929243000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:14 output/output-1507929246000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929246000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera         29 2017-10-13 21:14 output/output-1507929246000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:14 output/output-1507929249000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929249000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929249000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:14 output/output-1507929252000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929252000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929252000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:14 output/output-1507929255000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929255000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929255000.txt/part-00000
-drwxr-xr-x   - cloudera cloudera          0 2017-10-13 21:14 output/output-1507929258000.txt
--rw-r--r--   1 cloudera cloudera          0 2017-10-13 21:14 output/output-1507929258000.txt/_SUCCESS
--rw-r--r--   1 cloudera cloudera         29 2017-10-13 21:14 output/output-1507929258000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera    0 2017-10-13 21:12 output/output-1507929150000.txt
+-rw-r--r--   1 cloudera cloudera    0 2017-10-13 21:12 output/output-1507929150000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera    0 2017-10-13 21:12 output/output-1507929150000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera    0 2017-10-13 21:12 output/output-1507929153000.txt
+-rw-r--r--   1 cloudera cloudera    0 2017-10-13 21:12 output/output-1507929153000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera    0 2017-10-13 21:12 output/output-1507929153000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera    0 2017-10-13 21:12 output/output-1507929156000.txt
+-rw-r--r--   1 cloudera cloudera    0 2017-10-13 21:12 output/output-1507929156000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera    0 2017-10-13 21:12 output/output-1507929156000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera    0 2017-10-13 21:12 output/output-1507929159000.txt
+-rw-r--r--   1 cloudera cloudera    0 2017-10-13 21:12 output/output-1507929159000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera   29 2017-10-13 21:12 output/output-1507929159000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera    0 2017-10-13 21:12 
+[...]
+drwxr-xr-x   - cloudera cloudera    0 2017-10-13 21:14 output/output-1507929249000.txt
+-rw-r--r--   1 cloudera cloudera    0 2017-10-13 21:14 output/output-1507929249000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera    0 2017-10-13 21:14 output/output-1507929249000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera    0 2017-10-13 21:14 output/output-1507929252000.txt
+-rw-r--r--   1 cloudera cloudera    0 2017-10-13 21:14 output/output-1507929252000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera    0 2017-10-13 21:14 output/output-1507929252000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera    0 2017-10-13 21:14 output/output-1507929255000.txt
+-rw-r--r--   1 cloudera cloudera    0 2017-10-13 21:14 output/output-1507929255000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera    0 2017-10-13 21:14 output/output-1507929255000.txt/part-00000
+drwxr-xr-x   - cloudera cloudera    0 2017-10-13 21:14 output/output-1507929258000.txt
+-rw-r--r--   1 cloudera cloudera    0 2017-10-13 21:14 output/output-1507929258000.txt/_SUCCESS
+-rw-r--r--   1 cloudera cloudera   29 2017-10-13 21:14 output/output-1507929258000.txt/part-00000
 ```
+As can be seen from above, the scripts run without issues. All the results are correctly written to the output folder.
 
-#### Show part-00000
-In the second run, locate an output file named *part-00000* that is not empty and show its content to us.  
+## vii) Show part-00000
+**Question:** In the second run, locate an output file named *part-00000* that is not empty and show its content to us.  
 
+The following command gives as the output of a non-empty *part-00000* file.
 ```{bash eval=FALSE}
 hadoop fs -cat output/output-1507929258000.txt/part-00000
 ```
@@ -597,24 +540,18 @@ hadoop fs -cat output/output-1507929258000.txt/part-00000
 (True, 5124L)
 ```
 
-That means there were 5124 buys and 4876 sells in that particualar 3 second interval. 
+The above output means, that there were 5124 buys and 4876 sells in that particualar 3 second interval. 
 
-## Problem 3 (10%)
-In the second run of the previous problem you will notice that many of part-00000 files in your output directory are empty. Could you explain why.
-(10%)
+# Problem 3 (10%)
+**Question:** In the second run of the previous problem you will notice that many of *part-00000* files in your output directory are empty. Could you explain why.
 
-Some part-00000 files are empty. Those are not empty contain the result of counting of stock buys in the particular (5) second interval. The result is in the form :
-(False, 4962L)
-(True, 5038L)
-In the examided 5 seconds there were 5038 buys and 4962 sells.
+The *part-00000* files are micro-batches. Those not-empty contain the result of counting in the particular 3 second interval (see description above). That means, empty files result when there was no input in that particular interval. 
 
-The empty files mean that there was no input in that particular interval.
+# Problem 4 (20%)
+**Question:** Could you rewrite count-buys.sh in Spark Structured Streaming API. If you do that change script splitAndSend.sh to move generated chunks from the local files system directory staging to local file system directory input. Run this experiment on your VM with Spark 2.2.
 
-## Problem 4 (20%)
-Could you rewrite count-buys.sh in Spark Structured Streaming API. If you do that change script splitAndSend.sh to move generated chunks from the local files system directory staging to local file system directory input. Run this experiment on your VM with Spark 2.2.
-
-### i) Rewrite splitAndSend
-In order to use the native *Spark Structured Streaming API* we need to rewrite *splitAndSend.sh* so that it runds locally and no longer on the *HDFS* system. In order to do that first the two folder *input* and *staging* have to be created on the local filesystem. 
+## i) Rewrite splitAndSend
+In order to use the native *Spark Structured Streaming API* we need to rewrite *splitAndSend.sh* so that it runs locally and no longer on the *HDFS* system. In order to do that first the two folder *input* and *staging* have to be created on the local filesystem. 
 
 ```{bash eval=FALSE}
 ### Generate folders
@@ -628,7 +565,8 @@ Next we can rewrite *splitAndSend.sh* to *splitAndSend2.sh*
 #!/bin/bash
 
 # Split data into chunks
-split -l 10000 /home/tim/e63-coursework/hw6/data/orders.txt /home/tim/e63-coursework/hw6/data/staging/chunk
+split -l 10000 /home/tim/e63-coursework/hw6/data/orders.txt \
+/home/tim/e63-coursework/hw6/data/staging/chunk
 
 # Simulate stream with 3 seconds difference
 for f in `ls /home/tim/e63-coursework/hw6/data/staging/chunk*`; do
@@ -638,8 +576,8 @@ for f in `ls /home/tim/e63-coursework/hw6/data/staging/chunk*`; do
 done
 ```
 
-### ii) Rewrite count-buys
-Next we have to rewrite the count-buys function. In principal what we have to do is to define the Schema for the input rows, create the spark session, create a DataFrame representing the stream of input files, count the buys / sells in the window using the timestamp as a watermark. The resulting file can be found in *count-buys2.py*. It's code is below:
+## ii) Rewrite count-buys
+Next we have to rewrite the count-buys function. In principal what we have to do is to define the schema for the input rows, create the spark session, create a dataframe representing the stream of input files and count the buys / sells in the window using the timestamp as a watermark. The resulting file can be found in *count-buys2.py*. It's code is below:
 
 ```{bash eval=FALSE}
 # Libraries
@@ -681,26 +619,27 @@ df_buys.writeStream.queryName("aggregates") \
        .awaitTermination()
 ```
 
-
-### iii) Run Spark API Stream
+## iii) Run Spark API Stream
 Next we can run the code.
 
-
-#### SplitandSend
+### SplitandSend
 ```{bash eval=FALSE}
+# Empty folders (optional)
 # rm -r /home/tim/e63-coursework/hw6/data/staging/*
 # rm -r /home/tim/e63-coursework/hw6/data/input/*
+
+# Run script
 bash /home/tim/e63-coursework/hw6/scripts/splitAndSend2.sh
 ```
 
-#### Count-buys
+### Count-buys
 ```{bash eval=FALSE}
 spark-submit --master local[4] /home/tim/e63-coursework/hw6/scripts/count-buys2.py
 ```
 
 ```text
-tim@ip-172-31-24-35:~/e63-coursework/hw6/scripts$ spark-submit --master local[4] /home/tim/e63-coursewor 
-k/hw6/scripts/count-buys4.py
+tim@ip-172-31-24-35:~/e63-coursework/hw6/scripts$ spark-submit \
+--master local[4] /home/tim/e63-coursework/hw6/scripts/count-buys4.py
 -------------------------------------------
 Batch: 0
 -------------------------------------------
@@ -782,23 +721,26 @@ Batch: 2
 +---+--------------------+-----+
 ```
 
-## Problem 5 (20%)
-Examine provided Python program stateful_wordcount.py. Make it work as is. If there are errors on the code, fix them. 
+The above code shows, that the new adapted script is running perfectly in the structured streaming mode.
 
-### i) Stateful wordcount
-The script *stateful-wordcount.py* counts words in UTF8 encoded, '\n' delimited text received from the nework every second. To run the stateful_wordcount first the netcat server has to be run. 
+# Problem 5 (20%)
+**Question:** Examine provided Python program stateful_wordcount.py. Make it work as is. If there are errors on the code, fix them. 
+
+## i) Stateful wordcount
+The script *stateful-wordcount.py* counts words in UTF8 encoded, '\\n' delimited text received from the nework every second. To run the stateful_wordcount first the netcat server has to be run. 
 
 ```{bash eval=FALSE}
 nc -lk 9999
 ```
 
-The *stateful_wordcount.py* script has produces errors as " instead of # are used to comment the text. After fixing this, the code is running:
+**Note:** The *stateful_wordcount.py* script has produces errors as " instead of # are used to comment the text. After fixing this, the code is running:
 
 ```{bash eval=FALSE}
-spark-submit --master local[4] /home/tim/e63-coursework/hw6/scripts/stateful_wordcount.py localhost 9999
+spark-submit --master local[4] \
+/home/tim/e63-coursework/hw6/scripts/stateful_wordcount.py localhost 9999
 ```
 
-#### Netcat server
+### Netcat server
 ```text
 tim@ip-172-31-24-35:~/e63-coursework/hw6/data$ nc -lk 9999
 hello world
@@ -808,7 +750,7 @@ an apple a day, keeps the doctor away
 between you and me, britney is beautiful
 ```
 
-#### Stateful wordcount
+### Stateful wordcount
 ```text
 -------------------------------------------
 Time: 2017-10-13 15:50:45
@@ -825,9 +767,10 @@ Time: 2017-10-13 15:50:45
 (u'world', 2)
 ...
 ```
+The above output shows, that the stateful wordcount is working. 
 
-### ii) Word count (a & b)
-Modify the code so that it outputs the number of words starting with letters a and b. Demonstrate that modified program work. You should provide several both positive and negative examples.
+## ii) Word count (a & b)
+**Question:** Modify the code so that it outputs the number of words starting with letters a and b. Demonstrate that modified program work. You should provide several both positive and negative examples.
 
 Next we're rewriting the the script. The code from the resulting *stateful_wordcount2.py* is below:
 
@@ -872,10 +815,11 @@ if __name__ == "__main__":
 As the *netcat* server is still running we only have to run the *stateful_wordcount2.py* script from above.
 
 ```{bash eval=FALSE}
-spark-submit --master local[4] /home/tim/e63-coursework/hw6/scripts/stateful_wordcount2.py localhost 9999
+spark-submit --master local[4] \
+/home/tim/e63-coursework/hw6/scripts/stateful_wordcount2.py localhost 9999
 ```
 
-#### Netcat server
+### Netcat server
 ```text
 tim@ip-172-31-24-35:~/e63-coursework/hw6/data$ nc -lk 9999
 hello world
@@ -885,7 +829,7 @@ an apple a day, keeps the doctor away
 between you and me, britney is beautiful
 ```
 
-#### Stateful wordcount
+### Stateful wordcount
 ```text
 -------------------------------------------
 Time: 2017-10-13 16:01:48
