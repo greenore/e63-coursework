@@ -54,7 +54,7 @@ Start with importing libraries that will probably be used throughout homework an
 
 First we start with looking at the dataset:
 ```{bash eval=FALSE}
-path = "file:///home/tim/hour_noheader.csv"
+path = "file:///home/tim/e63-coursework/hw7/data/hour.csv"
 raw_data = sc.textFile(path)
 num_data = raw_data.count()
 records = raw_data.map(lambda x: x.split(","))
@@ -62,6 +62,13 @@ first = records.first()
 print first
 print num_data
 ```
+
+```{r}
+raw_data.toDF()
+
+*season, yr, mnth, hr, holiday, weekday, workingday, weathersit, temp, atemp, hum, windspeed, cnt*
+```
+
 
 Binary encoding (1:k)
 ```{bash eval=FALSE}
