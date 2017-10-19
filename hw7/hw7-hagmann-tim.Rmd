@@ -1,0 +1,178 @@
+---
+title: |
+  | Homework 6: Spark Streaming
+author: "Tim Hagmann"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  pdf_document:
+    toc: no
+  html_document:
+    css: css/styles.css
+    highlight: tango
+    theme: flatly
+    toc: yes
+    toc_float: yes
+  word_document:
+    toc: yes
+linkcolor: blue
+subtitle: |
+  | E-63 Big Data Analytics
+  | Harvard University, Autumn 2017
+affiliation: Harvard University
+urlcolor: blue
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo=TRUE)
+```
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(warning=FALSE, message=FALSE,
+                      tidy.opts=list(width.cutoff=60), fig.pos='H',
+                      fig.align='center')
+```
+
+This notebook is hosted on Amazon EC2 with Python *3* and Spark *2.2* and Jupyter Notebook. The easiest way to replicate it is using a docker image like *jupyter/all-spark-notebook*. To use it after intalling docker simply run. You should probably also use the -v option to map a default directory
+to a local directory so you can save your notebooks even if you decide to kill the image. Here I would use -v /mnt/c/Local:/home/jovyan/work
+
+```{bash eval=FALSE}
+docker run -it --rm -p 8888:8888 --name spark jupyter/all-spark-notebook 
+```
+
+Start with importing libraries that will probably be used throughout homework and starting the spark context.
+
+
+# Problem 1 (25%)
+**Question:** Attached file *auto_mpg_original.csv* contains a set of data on automobile characteristics and fuel consumption. File *auto_mpg_description.csv* contains the description of the data.  Import data into Spark. Randomly select *10-20%* of you data for testing and use remaining data for training. Find all *null values* in all *numerical* columns. Replace *nulls*, if any, with *average values* for respective columns using *Spark Data Frame API*.
+
+
+# Problem 2 (25%)
+**Question:** Look initially at two variables in the data set from the previous problem: the *horsepower* and the *mpg* (miles per gallon). Treat *mpg* as a feature and *horsepower* as the target variable (label). Use *MLlib* linear regression to identify the model for the relationship. Use the *test data* to illustrate *accuracy* of the *linear regression model* and its ability to predict the relationship. Calculate *two standard measures* of model *accuracy*. Create a *diagram* using any technique of convenience to presents the model (straight line), and the original test data. Please label your axes and use different colors for original data and predicted data.
+
+# Problem 3 (25%)
+**Question:** Consider attached file *Bike-Sharing-Dataset.zip*. This is the bike set discussed in class. Do *not* use all columns of the data set. Retain the following variables: *season, yr, mnth, hr, holiday, weekday, workingday, weathersit, temp, atemp, hum, windspeed, cnt*. Discard others. Regard *cnt* as the target variable and all other variables as features.  Please note that some of those are categorical variables. Identify categorical variables and use *1-of-k* *binary encoding* for those variables. If there are any null values in numerical columns, replace those with average values for those columns using *Spark DataFrame API*. Train your model using *LinearRegressionSGD* method. Use test data (15% of all) to assess the quality of prediction for *cnt* variable. Calculate at least two performance metrics of your model.
+
+First we start with looking at the dataset:
+```{bash eval=FALSE}
+path = "file:///home/tim/hour_noheader.csv"
+raw_data = sc.textFile(path)
+num_data = raw_data.count()
+records = raw_data.map(lambda x: x.split(","))
+first = records.first()
+print first
+print num_data
+```
+
+Binary encoding (1:k)
+```{bash eval=FALSE}
+all_day = sc.parallelize(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'])
+
+idx = 0
+all_day_dict = {}
+# Transform RDD into a list
+for o in all_day.collect():
+  all_days_dict[o] = idx
+  idx += 1
+  
+print "Encoding of 'Monday': %d" % all_days_dict['Monday']
+print "Encoding of 'Wednesday': %d" % all_days_dict['Wednesday']
+```
+
+Binary encode days of the week
+```{bash eval=FALSE}
+import numpy as np
+K = len(all_days_dict)
+binary_x = np.zeros(K)
+k_wednesday = all_days_dict['Wednesday']
+binary_x[k_wednesday] = 1
+print "Binary feature vector: %s" % binary_x
+print "Length of binary vector: %d" % K
+```
+
+Binary Encoding of Categorical Variables in Bike Dataset
+```{bash eval=FALSE}
+records.cache()
+def get_mapping(rdd, idx):
+return rdd.map(lambda fields: fields[idx]).distinct(). zipWithIndex().collectAsMap()
+print "Mapping of first categorical feature column: %s" % get_
+mapping(records, 2)
+```
+
+Now, we can apply this function to each categorical column (that is, for
+```{bash eval=FALSE}
+variable indices 2 to 9):
+mappings = [get_mapping(records, i) for i in range(2,10)]
+cat_len = sum(map(len, mappings))
+num_len = len(records.first()[10:14])
+total_len = num_len + cat_len
+
+# Print
+print "Feature vector length for categorical features: %d" % cat_len
+print "Feature vector length for numerical features: %d" % num_len
+print "Total feature vector length: %d" % total_len
+```
+
+Creating Feature Vectors for Linear Model
+• The next step is to use our mappings to convert the categorical features to binaryencoded
+features.
+• It will help to have a function that could be applied to each record in the dataset.
+• We will also create a function to extract the target variable from each record.
+• Import numpy for linear algebra utilities and MLlib's
+```{bash eval=FALSE}
+from pyspark.mllib.regression import LabeledPoint
+import numpy as np
+def extract_features(record):
+  cat_vec = np.zeros(cat_len)
+  i = 0
+  step = 0
+  for field in record[2:10]:
+    m = mappings[i]
+    idx = m[field]
+    cat_vec[idx + step] = 1
+    i = i + 1
+    step = step + len(m)
+  num_vec = np.array([float(field) for field in record[10:14]])
+  return np.concatenate((cat_vec, num_vec))
+
+def extract_label(record):
+return float(record[-1])
+```
+
+```{bash eval=FALSE}
+data = records.map(lambda r: LabeledPoint(extract_label(r),extract_features(r)))
+```
+
+Let's inspect the first record in the extracted feature RDD:
+
+```{bash eval=FALSE}
+first_point = data.first()
+print "Raw data: " + str(first[2:])
+print "Label: " + str(first_point.label)
+print "Linear Model feature vector:\n" + str(first_point.features)
+print "Linear Model feature vector length: " + str(len(first_point.features))
+```
+
+```{bash eval=FALSE}
+from pyspark.mllib.regression import LinearRegressionWithSGD
+linear_model = LinearRegressionWithSGD.train(data, iterations=200,step=0.01, intercept=False)
+true_vs_predicted = data.map(lambda p: (p.label, linear_model.predict(p.features)))
+print "Linear Model predictions: " + str(true_vs_predicted.take(5))
+```
+
+--> Bad model
+
+Save model
+```{bash eval=FALSE}
+from pyspark.mllib.regression import LinearRegressionModel
+linear_model.save(sc, "file:///home/cloudera/linear_model")
+```
+
+Load model
+```{bash eval=FALSE}
+sameModel = LinearRegressionModel.load(sc, "file:///home/cloudera/linear_model")
+no_bikes = sameModel.predict(feature_vector)
+```
+
+
+# Problem 4 (25%)
+**Question:** Use a *Decision Tree model* to predict *mpg* values in *auto_mpg_original.txt* data. Assess accuracy of your prediction using at least two performance metrics.
