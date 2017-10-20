@@ -1,6 +1,6 @@
 ---
 title: |
-  | Homework 6: Spark Streaming
+  | Homework 7: Spark ML
 author: "Tim Hagmann"
 date: '`r format(Sys.Date(), "%B %d, %Y")`'
 output:
