@@ -141,7 +141,7 @@ def main():
         print('Starting run for %s' % hparam)
         sys.stdout.flush() # this forces print-ed lines to show up.
 
-	    # Actually run with the new settings
+	   # Actually run with the new settings
         mnist_model(learning_rate, use_two_fc, use_two_conv, hparam)
 
 

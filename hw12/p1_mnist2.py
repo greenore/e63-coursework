@@ -1,9 +1,6 @@
 # Copyright 2017 Google, Inc. All Rights Reserved.
 #
 # ==============================================================================
-
-## Load libraries
-#----------------
 import os
 import tensorflow as tf
 import sys
@@ -14,19 +11,16 @@ if sys.version_info[0] >= 3:
 else:
   from urllib import urlretrieve
 
-## Directories
-#-------------
 LOGDIR = 'log3_fixed'
 GITHUB_URL ='https://raw.githubusercontent.com/mamcgrath/TensorBoard-TF-Dev-Summit-Tutorial/master/'
 
 ### MNIST EMBEDDINGS ###
 mnist = tf.contrib.learn.datasets.mnist.read_data_sets(train_dir=LOGDIR + 'data', one_hot=True)
-
 ### Get a sprite and labels file for the embedding projector ###
 urlretrieve(GITHUB_URL + 'labels_1024.tsv', LOGDIR + 'labels_1024.tsv')
 urlretrieve(GITHUB_URL + 'sprite_1024.png', LOGDIR + 'sprite_1024.png')
 
-# Add convolution layer
+# Add convolution layer +
 def conv_layer(input, size_in, size_out, name="conv"):
   with tf.name_scope(name):
     #w = tf.Variable(tf.zeros([5, 5, size_in, size_out]), name="W")
@@ -62,7 +56,7 @@ def mnist_model(learning_rate, use_two_conv, use_two_fc, hparam):
   tf.summary.image('input', x_image, 3)
   y = tf.placeholder(tf.float32, shape=[None, 10], name="labels")
 
-  #Create a placeholder for the probability a neuron's output is kept during dropout
+  # Keep dropout
   keep_prob = tf.placeholder(tf.float32)
   
   if use_two_conv:
@@ -78,10 +72,11 @@ def mnist_model(learning_rate, use_two_conv, use_two_fc, hparam):
     fc1 = fc_layer(flattened, 7 * 7 * 64, 1024, "fc1")
     embedding_input = fc1
     embedding_size = 1024
-    #Apply dropout on the the 1st fc layer
+
+    # Apply dropout
     fc1_drop = tf.nn.dropout(fc1, keep_prob)
-    #After droping out outliers run fc_layer on the 1st fc layer
     logits = fc_layer(fc1_drop, 1024, 10, "fc2")
+    
   else:
     embedding_input = flattened
     embedding_size = 7*7*64
@@ -114,9 +109,7 @@ def mnist_model(learning_rate, use_two_conv, use_two_fc, hparam):
   config = tf.contrib.tensorboard.plugins.projector.ProjectorConfig()
   embedding_config = config.embeddings.add()
   embedding_config.tensor_name = embedding.name
-  #embedding_config.sprite.image_path = LOGDIR + 'sprite_1024.png'
   embedding_config.sprite.image_path = 'sprite_1024.png'
-  #embedding_config.metadata_path = LOGDIR + 'labels_1024.tsv'
   embedding_config.metadata_path = 'labels_1024.tsv'
   # Specify the width and height of a single thumbnail.
   embedding_config.sprite.single_image_dim.extend([28, 28])
@@ -125,13 +118,13 @@ def mnist_model(learning_rate, use_two_conv, use_two_fc, hparam):
   for i in range(2001):
     batch = mnist.train.next_batch(100)
     if i % 5 == 0:
-      # For testing we feed probability of 1.0 for dropout
+      # Testing probabilty of 1.0 (dropout)
       [train_accuracy, s] = sess.run([accuracy, summ], feed_dict={x: batch[0], y: batch[1], keep_prob: 1.0})
       writer.add_summary(s, i)
     if i % 500 == 0:
       sess.run(assignment, feed_dict={x: mnist.test.images[:1024], y: mnist.test.labels[:1024]})
       saver.save(sess, os.path.join(LOGDIR, "model.ckpt"), i)
-    # While training we are feeding with probability of 0.5 for dropout
+    # While training probability 0.5 for dropout
     sess.run(train_step, feed_dict={x: batch[0], y: batch[1], keep_prob: 0.5})
 
 def make_hparam_string(learning_rate, use_two_fc, use_two_conv):
