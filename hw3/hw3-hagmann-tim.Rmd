@@ -4,14 +4,14 @@ title: |
 author: "Tim Hagmann"
 date: '`r format(Sys.Date(), "%B %d, %Y")`'
 output:
-  pdf_document:
-    toc: yes
   html_document:
     css: css/styles.css
     highlight: tango
     theme: flatly
     toc: yes
     toc_float: yes
+  pdf_document:
+    toc: yes
   word_document:
     toc: yes
 linkcolor: blue
@@ -124,13 +124,13 @@ aws ec2 run-instances \
 #### Step 6: Associate IP Address (optional)
 The started instance comes by default with a *flexible* ip address. This means, that when restarting the instance, a new ip address gets associated to the server. In order to avoid this, we can associate a elastic ip address to the server. First we're reading the id of our instance as well as the from AWS bought elastic ip address (Buying an IP address has to be done seperatly on AWS).
 
-```{bash}
+```{bash eval=FALSE}
 # Get instances id
 aws ec2 describe-instances --query \
   'Reservations[].Instances[].[InstanceId, State.Name]' --output text
 ```
 
-```{bash}
+```{bash eval=FALSE}
 # Get elastic IP addresses
 x=$(aws ec2 describe-addresses)
 y=$(echo $x | awk '{print $2}')

@@ -4,6 +4,8 @@ title: |
 author: "Tim Hagmann"
 date: '`r format(Sys.Date(), "%B %d, %Y")`'
 output:
+  pdf_document:
+    toc: yes
   html_document:
     css: css/styles.css
     highlight: tango
@@ -11,8 +13,6 @@ output:
     toc: yes
     toc_float: yes
   word_document:
-    toc: yes
-  pdf_document:
     toc: yes
 linkcolor: blue
 subtitle: |
